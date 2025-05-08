@@ -25,34 +25,34 @@ import java.util.Map;
 
 @Mixin(AreaEffectCloud.class)
 public abstract class AreaEffectCloudEntityMixin extends Entity {
-    
-    
+
+
     @Shadow
     public abstract boolean isWaiting();
-    
+
     @Shadow
     public abstract float getRadius();
-    
+
     @Shadow
     public abstract ParticleOptions getParticle();
-    
+
     @Shadow
     public abstract int getColor();
-    
+
     @Shadow
     private int duration;
     @Shadow
     private int waitTime;
-    
+
     @Shadow
     protected abstract void setWaiting(boolean waiting);
-    
+
     @Shadow
     private float radiusPerTick;
-    
+
     @Shadow
     public abstract void setRadius(float radius);
-    
+
     @Shadow
     @Final
     private Map<Entity, Integer> victims;
@@ -63,21 +63,21 @@ public abstract class AreaEffectCloudEntityMixin extends Entity {
     private List<MobEffectInstance> effects;
     @Shadow
     private int reapplicationDelay;
-    
+
     @Shadow
     @Nullable
     public abstract LivingEntity getOwner();
-    
+
     @Shadow
     private float radiusOnUse;
     @Shadow
     private int durationOnUse;
     //private static final TrackedData<Direction> gravitychanger$GRAVITY_DIRECTION = DataTracker.registerData(AreaEffectCloudEntity.class, TrackedDataHandlerRegistry.FACING);
-    
+
     //private static final TrackedData<Direction> gravitychanger$DEFAULT_GRAVITY_DIRECTION = DataTracker.registerData(AreaEffectCloudEntity.class, TrackedDataHandlerRegistry.FACING);
-    
+
     //private Direction gravitychanger$prevGravityDirection = Direction.DOWN;
-    
+
     public AreaEffectCloudEntityMixin(EntityType<?> type, Level world) {
         super(type, world);
     }
@@ -187,8 +187,8 @@ public abstract class AreaEffectCloudEntityMixin extends Entity {
     //      nbt.putInt("GravityDirection", this.gravitychanger$getGravityDirection().getId());
     //      nbt.putInt("DefaultGravityDirection", this.gravitychanger$getDefaultGravityDirection().getId());
     //  }
-    
-    
+
+
     @ModifyArgs(
         method = "tick",
         at = @At(
@@ -199,7 +199,7 @@ public abstract class AreaEffectCloudEntityMixin extends Entity {
     private void modify_move_multiply_0(Args args) {
         boolean bl = this.isWaiting();
         float f = this.getRadius();
-        
+
         float g;
         if (bl) {
             g = 0.2F;
@@ -207,23 +207,42 @@ public abstract class AreaEffectCloudEntityMixin extends Entity {
         else {
             g = f;
         }
-        
+
         float h = this.random.nextFloat() * 6.2831855F;
         float k = Mth.sqrt(this.random.nextFloat()) * g;
-        
+
         double d = this.getX();
         double e = this.getY();
         double l = this.getZ();
-        Vec3 modify = RotationUtil.vecWorldToPlayer(d, e, l, GravityChangerAPI.getGravityDirection(this));
-        d = modify.x + (double) (Mth.cos(h) * k);
-        e = modify.y;
-        l = modify.z + (double) (Mth.sin(h) * k);
-        modify = RotationUtil.vecPlayerToWorld(d, e, l, GravityChangerAPI.getGravityDirection(this));
-        
+
+        // Get both Direction and Vec3 gravity directions
+        net.minecraft.core.Direction gravityDirection = GravityChangerAPI.getGravityDirection(this);
+        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+
+        Vec3 modify;
+        // For cardinal directions, use the existing code path for backward compatibility
+        if (isDefaultGravity || !GravityChangerAPI.isUsingVec3Gravity(this)) {
+            modify = RotationUtil.vecWorldToPlayer(d, e, l, gravityDirection);
+            d = modify.x + (double) (Mth.cos(h) * k);
+            e = modify.y;
+            l = modify.z + (double) (Mth.sin(h) * k);
+            modify = RotationUtil.vecPlayerToWorld(d, e, l, gravityDirection);
+        } else {
+            // For arbitrary directions, use the Vec3-based method
+            modify = RotationUtil.vecWorldToPlayerVec(new Vec3(d, e, l), gravityDirectionVec);
+            d = modify.x + (double) (Mth.cos(h) * k);
+            e = modify.y;
+            l = modify.z + (double) (Mth.sin(h) * k);
+            modify = RotationUtil.vecPlayerToWorldVec(new Vec3(d, e, l), gravityDirectionVec);
+        }
+
         args.set(1, modify.x);
         args.set(2, modify.y);
         args.set(3, modify.z);
     }
-    
-    
+
+
 }

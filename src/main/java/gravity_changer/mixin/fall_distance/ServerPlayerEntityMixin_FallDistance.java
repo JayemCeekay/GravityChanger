@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
 @Mixin(ServerPlayer.class)
 public abstract class ServerPlayerEntityMixin_FallDistance {
-    
+
     // make sure fall distance is correct on server side of the player
     @ModifyArgs(
         method = "doCheckFallDamage",
@@ -32,10 +32,30 @@ public abstract class ServerPlayerEntityMixin_FallDistance {
         double dx, double dy, double dz, boolean onGround
     ) {
         ServerPlayer this_ = (ServerPlayer) (Object) this;
-        Direction gravity = GravityChangerAPI.getGravityDirection(this_);
 
-        Vec3 localVec = RotationUtil.vecWorldToPlayer(dx, dy, dz, gravity);
+        // Get both Direction and Vec3 gravity directions
+        Direction gravity = GravityChangerAPI.getGravityDirection(this_);
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this_);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
+            args.set(0, dy);
+            return;
+        }
+
+        Vec3 worldVec = new Vec3(dx, dy, dz);
+        Vec3 localVec;
+
+        // For cardinal directions, use the existing code path for backward compatibility
+        if (!GravityChangerAPI.isUsingVec3Gravity(this_)) {
+            localVec = RotationUtil.vecWorldToPlayer(worldVec, gravity);
+        } else {
+            // For arbitrary directions, use the Vec3-based method
+            localVec = RotationUtil.vecWorldToPlayerVec(worldVec, gravityDirectionVec);
+        }
+
         args.set(0, localVec.y());
     }
-    
+
 }

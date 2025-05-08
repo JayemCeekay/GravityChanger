@@ -15,26 +15,26 @@ import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 @Mixin(ServerGamePacketListenerImpl.class)
 public abstract class ServerPlayNetworkHandlerMixin {
     private static double gravitychanger$onPlayerMove_playerMovementY;
-    
+
     @Shadow
     public ServerPlayer player;
-    
+
     @Shadow
     private static double clampHorizontal(double d) {return 0;}
-    
+
     ;
-    
+
     @Shadow
     private static double clampVertical(double d) {return 0;}
-    
+
     ;
-    
+
     @Shadow
     private double lastGoodX;
-    
+
     @Shadow
     private double lastGoodY;
-    
+
     @Shadow
     private double lastGoodZ;
 
@@ -131,7 +131,7 @@ public abstract class ServerPlayNetworkHandlerMixin {
 //
 //        return RotationUtil.vecWorldToPlayer(vec3d, gravityDirection);
 //    }
-    
+
     @ModifyArg(
         method = "handleMovePlayer",
         at = @At(
@@ -140,14 +140,25 @@ public abstract class ServerPlayNetworkHandlerMixin {
         )
     )
     private Vec3 modify_onPlayerMove_move_1(Vec3 vec3d) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(this.player);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this.player);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return vec3d;
         }
-        
-        return RotationUtil.vecWorldToPlayer(vec3d, gravityDirection);
+
+        // For cardinal directions, use the existing code path for backward compatibility
+        if (!GravityChangerAPI.isUsingVec3Gravity(this.player)) {
+            return RotationUtil.vecWorldToPlayer(vec3d, gravityDirection);
+        } else {
+            // For arbitrary directions, use the Vec3-based method
+            return RotationUtil.vecWorldToPlayerVec(vec3d, gravityDirectionVec);
+        }
     }
-    
+
     //@Redirect(
     //        method = "onVehicleMove",
     //        at = @At(
@@ -181,7 +192,7 @@ public abstract class ServerPlayNetworkHandlerMixin {
 //
     //    return RotationUtil.vecWorldToPlayer(instance.getPos(), gravityDirection).y;
     //}
-    
+
     @ModifyArg(
         method = "handleMoveVehicle",
         at = @At(
@@ -191,14 +202,25 @@ public abstract class ServerPlayNetworkHandlerMixin {
         index = 1
     )
     private Vec3 modify_onVehicleMove_move_0(Vec3 vec3d) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(this.player);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this.player);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return vec3d;
         }
-        
-        return RotationUtil.vecWorldToPlayer(vec3d, gravityDirection);
+
+        // For cardinal directions, use the existing code path for backward compatibility
+        if (!GravityChangerAPI.isUsingVec3Gravity(this.player)) {
+            return RotationUtil.vecWorldToPlayer(vec3d, gravityDirection);
+        } else {
+            // For arbitrary directions, use the Vec3-based method
+            return RotationUtil.vecWorldToPlayerVec(vec3d, gravityDirectionVec);
+        }
     }
-    
+
     //@ModifyVariable(
     //        method = "onVehicleMove",
     //        at = @At(
@@ -215,8 +237,8 @@ public abstract class ServerPlayNetworkHandlerMixin {
 //
     //    return gravitychanger$onPlayerMove_playerMovementY;
     //}
-    
-    
+
+
     @ModifyArgs(
         method = "noBlocksAround",
         at = @At(
@@ -225,14 +247,27 @@ public abstract class ServerPlayNetworkHandlerMixin {
         )
     )
     private void modify_onVehicleMove_move_0(Args args) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(this.player);
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this.player);
+
         Vec3 argVec = new Vec3(args.get(0), args.get(1), args.get(2));
-        argVec = RotationUtil.vecWorldToPlayer(argVec, gravityDirection);
-        
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (!isDefaultGravity) {
+            // For cardinal directions, use the existing code path for backward compatibility
+            if (!GravityChangerAPI.isUsingVec3Gravity(this.player)) {
+                argVec = RotationUtil.vecWorldToPlayer(argVec, gravityDirection);
+            } else {
+                // For arbitrary directions, use the Vec3-based method
+                argVec = RotationUtil.vecWorldToPlayerVec(argVec, gravityDirectionVec);
+            }
+        }
+
         args.set(0, argVec.x);
         args.set(1, argVec.y);
         args.set(2, argVec.z);
-        
     }
-    
+
 }

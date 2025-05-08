@@ -30,20 +30,20 @@ import org.joml.Vector3f;
 public abstract class CameraMixin {
     @Shadow
     protected abstract void setPosition(double x, double y, double z);
-    
+
     @Shadow
     private Entity entity;
-    
+
     @Shadow
     @Final
     private Quaternionf rotation;
-    
+
     @Shadow
     private float eyeHeightOld;
-    
+
     @Shadow
     private float eyeHeight;
-    
+
     @WrapOperation(
         method = "setup",
         at = @At(
@@ -57,36 +57,43 @@ public abstract class CameraMixin {
         Operation<Void> original, BlockGetter area, Entity focusedEntity,
         boolean thirdPerson, boolean inverseView, float tickDelta
     ) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(focusedEntity);
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(focusedEntity);
         RotationAnimation animation = GravityChangerAPI.getRotationAnimation(focusedEntity);
-        
+
         if (animation == null) {
             original.call(this, x, y, z);
             return;
         }
-        
+
         float partialTick = Minecraft.getInstance().getFrameTime();
         long timeMs = focusedEntity.level().getGameTime() * 50 + (long) (partialTick * 50);
         animation.update(timeMs);
-        if (gravityDirection == Direction.DOWN && !animation.isInAnimation()) {
+
+        // Check if we're using the default gravity direction and not in animation
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity && !animation.isInAnimation()) {
             original.call(this, x, y, z);
             return;
         }
-    
-        Quaternionf gravityRotation = animation.getCurrentGravityRotation(gravityDirection, timeMs);
-        
+
+        // Use the Vec3-based method to get the gravity rotation
+        Quaternionf gravityRotation = animation.getCurrentGravityRotationVec(gravityDirectionVec, timeMs);
+
         double entityX = Mth.lerp((double) tickDelta, focusedEntity.xo, focusedEntity.getX());
         double entityY = Mth.lerp((double) tickDelta, focusedEntity.yo, focusedEntity.getY());
         double entityZ = Mth.lerp((double) tickDelta, focusedEntity.zo, focusedEntity.getZ());
-        
+
         double currentCameraY = Mth.lerp(tickDelta, this.eyeHeightOld, this.eyeHeight);
-    
-        Vec3 eyeOffset = animation.getEyeOffset(
+
+        // Use the Vec3-based method to get the eye offset
+        Vec3 eyeOffset = animation.getEyeOffsetVec(
             gravityRotation,
             new Vec3(0, currentCameraY, 0),
-            gravityDirection
+            gravityDirectionVec
         );
-        
+
         original.call(
             this,
             entityX + eyeOffset.x(),
@@ -94,7 +101,7 @@ public abstract class CameraMixin {
             entityZ + eyeOffset.z()
         );
     }
-    
+
     @Inject(
         method = "Lnet/minecraft/client/Camera;setRotation(FF)V",
         at = @At(
@@ -106,17 +113,26 @@ public abstract class CameraMixin {
     )
     private void inject_setRotation(CallbackInfo ci) {
         if (this.entity != null) {
+            // Get both Direction and Vec3 gravity directions
             Direction gravityDirection = GravityChangerAPI.getGravityDirection(this.entity);
+            Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this.entity);
             RotationAnimation animation = GravityChangerAPI.getRotationAnimation(entity);
+
             if (animation == null) {
                 return;
             }
-            if (gravityDirection == Direction.DOWN && !animation.isInAnimation()) {
+
+            // Check if we're using the default gravity direction and not in animation
+            boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+            if (isDefaultGravity && !animation.isInAnimation()) {
                 return;
             }
+
             float partialTick = Minecraft.getInstance().getFrameTime();
             long timeMs = entity.level().getGameTime() * 50 + (long) (partialTick * 50);
-            Quaternionf rotation = new Quaternionf(animation.getCurrentGravityRotation(gravityDirection, timeMs));
+
+            // Use the Vec3-based method to get the gravity rotation
+            Quaternionf rotation = new Quaternionf(animation.getCurrentGravityRotationVec(gravityDirectionVec, timeMs));
             rotation.conjugate();
             rotation.mul(this.rotation);
             this.rotation.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());

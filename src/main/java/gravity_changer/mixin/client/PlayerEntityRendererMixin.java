@@ -23,12 +23,23 @@ public abstract class PlayerEntityRendererMixin {
     )
     private Vec3 modify_setupTransforms_Vec3d_0(AbstractClientPlayer instance, float partialTick) {
         Vec3 viewVector = instance.getViewVector(partialTick);
-        
+
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(instance);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(instance);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return viewVector;
         }
-        
-        return RotationUtil.vecWorldToPlayer(viewVector, gravityDirection);
+
+        // For cardinal directions, use the existing code path for backward compatibility
+        if (!GravityChangerAPI.isUsingVec3Gravity(instance)) {
+            return RotationUtil.vecWorldToPlayer(viewVector, gravityDirection);
+        } else {
+            // For arbitrary directions, use the Vec3-based method
+            return RotationUtil.vecWorldToPlayerVec(viewVector, gravityDirectionVec);
+        }
     }
 }

@@ -20,14 +20,21 @@ public abstract class LookControlMixin {
         )
     )
     private static double redirect_getLookingHeightForgetEyeY_0(Entity entity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return entity.getEyeY();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return entity.getEyePosition().y;
     }
-    
+
     @Redirect(
         method = "Lnet/minecraft/world/entity/ai/control/LookControl;setLookAt(Lnet/minecraft/world/entity/Entity;)V",
         at = @At(
@@ -37,14 +44,21 @@ public abstract class LookControlMixin {
         )
     )
     private double redirect_lookAt_getX_0_0(Entity entity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return entity.getX();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return entity.getEyePosition().x;
     }
-    
+
     @Redirect(
         method = "Lnet/minecraft/world/entity/ai/control/LookControl;setLookAt(Lnet/minecraft/world/entity/Entity;)V",
         at = @At(
@@ -54,14 +68,21 @@ public abstract class LookControlMixin {
         )
     )
     private double redirect_lookAt_getZ_0_0(Entity entity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return entity.getZ();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return entity.getEyePosition().z;
     }
-    
+
     @Redirect(
         method = "Lnet/minecraft/world/entity/ai/control/LookControl;setLookAt(Lnet/minecraft/world/entity/Entity;FF)V",
         at = @At(
@@ -71,14 +92,21 @@ public abstract class LookControlMixin {
         )
     )
     private double redirect_lookAt_getX_0_1(Entity entity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return entity.getX();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return entity.getEyePosition().x;
     }
-    
+
     @Redirect(
         method = "Lnet/minecraft/world/entity/ai/control/LookControl;setLookAt(Lnet/minecraft/world/entity/Entity;FF)V",
         at = @At(
@@ -88,11 +116,18 @@ public abstract class LookControlMixin {
         )
     )
     private double redirect_lookAt_getZ_0_1(Entity entity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return entity.getZ();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return entity.getEyePosition().z;
     }
 }

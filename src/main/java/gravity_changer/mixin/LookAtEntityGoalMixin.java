@@ -20,14 +20,21 @@ public abstract class LookAtEntityGoalMixin {
         )
     )
     private double redirect_tick_getEyeY_0(Entity entity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return entity.getEyeY();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return entity.getEyePosition().y;
     }
-    
+
     @Redirect(
         method = "Lnet/minecraft/world/entity/ai/goal/LookAtPlayerGoal;tick()V",
         at = @At(
@@ -37,14 +44,21 @@ public abstract class LookAtEntityGoalMixin {
         )
     )
     private double redirect_tick_getX_0(Entity entity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return entity.getX();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return entity.getEyePosition().x;
     }
-    
+
     @Redirect(
         method = "Lnet/minecraft/world/entity/ai/goal/LookAtPlayerGoal;tick()V",
         at = @At(
@@ -54,11 +68,18 @@ public abstract class LookAtEntityGoalMixin {
         )
     )
     private double redirect_tick_getZ_0(Entity entity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return entity.getZ();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return entity.getEyePosition().z;
     }
 }

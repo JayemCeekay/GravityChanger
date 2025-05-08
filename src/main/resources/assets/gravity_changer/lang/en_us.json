@@ -89,6 +89,9 @@
   "direction.east": "East",
 
   "gravity_changer.command.inform": "Base Gravity Direction: %s, Base Gravity Strength: %s",
+  "gravity_changer.command.inform_vec": "Base Gravity Direction (Vec3): %s, Base Gravity Strength: %s",
+  "gravity_changer.command.set_vec": "Set gravity direction to %s",
+  "gravity_changer.command.set_vec_multiple": "Set gravity direction to %s for %s entities",
   "gravity_changer.command.dimension_info": "Dimension Gravity Strength: %s",
 
   "commands.gravity.get.self": "Your gravity is %s",

@@ -19,6 +19,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.Validate;
 
 public class GravityCommand {
@@ -26,7 +27,7 @@ public class GravityCommand {
         LiteralArgumentBuilder<CommandSourceStack> builder = Commands
             .literal("gravity")
             .requires(source -> source.hasPermission(2));
-        
+
         builder.then(Commands.literal("set_base_direction")
             .then(Commands.argument("direction", DirectionArgumentType.instance)
                 .executes(context -> {
@@ -48,7 +49,50 @@ public class GravityCommand {
                 )
             )
         );
-        
+
+        // Add a new command for setting arbitrary gravity direction using Vec3
+        builder.then(Commands.literal("set_base_direction_vec")
+            .then(Commands.argument("direction", Vec3ArgumentType.instance)
+                .executes(context -> {
+                    Entity entity = context.getSource().getEntity();
+                    Validate.isTrue(entity != null);
+                    Vec3 direction = Vec3ArgumentType.getVec3(context, "direction");
+                    GravityChangerAPI.setBaseGravityDirectionVec(entity, direction);
+
+                    // Send feedback
+                    context.getSource().sendSuccess(
+                        () -> Component.translatable(
+                            "gravity_changer.command.set_vec",
+                            String.format("%.2f %.2f %.2f", direction.x, direction.y, direction.z)
+                        ), true
+                    );
+
+                    return 1;
+                })
+                .then(Commands.argument("entities", EntityArgument.entities())
+                    .executes(context -> {
+                        Collection<? extends Entity> entities = EntityArgument.getEntities(context, "entities");
+                        Vec3 direction = Vec3ArgumentType.getVec3(context, "direction");
+
+                        for (Entity entity : entities) {
+                            GravityChangerAPI.setBaseGravityDirectionVec(entity, direction);
+                        }
+
+                        // Send feedback
+                        context.getSource().sendSuccess(
+                            () -> Component.translatable(
+                                "gravity_changer.command.set_vec_multiple",
+                                String.format("%.2f %.2f %.2f", direction.x, direction.y, direction.z),
+                                entities.size()
+                            ), true
+                        );
+
+                        return entities.size();
+                    })
+                )
+            )
+        );
+
         builder.then(Commands.literal("reset")
             .executes(context -> {
                 Entity entity = context.getSource().getEntity();
@@ -66,7 +110,7 @@ public class GravityCommand {
                 })
             )
         );
-        
+
         builder.then(Commands.literal("set_base_strength")
             .then(Commands.argument("strength", DoubleArgumentType.doubleArg(-20, 20))
                 .executes(context -> {
@@ -84,13 +128,14 @@ public class GravityCommand {
                 )
             )
         );
-        
+
         builder.then(Commands.literal("view")
             .executes(context -> {
                 Entity entity = context.getSource().getEntity();
-                
+
                 GravityComponent component = GravityChangerAPI.getGravityComponent(entity);
-                
+                Vec3 gravityVec = component.getBaseGravityDirectionVec();
+
                 context.getSource().sendSuccess(
                     () -> Component.translatable(
                         "gravity_changer.command.inform",
@@ -98,11 +143,20 @@ public class GravityCommand {
                         component.getBaseGravityStrength()
                     ), false
                 );
-                
+
+                // Also show the Vec3-based gravity direction
+                context.getSource().sendSuccess(
+                    () -> Component.translatable(
+                        "gravity_changer.command.inform_vec",
+                        String.format("%.2f %.2f %.2f", gravityVec.x, gravityVec.y, gravityVec.z),
+                        component.getBaseGravityStrength()
+                    ), false
+                );
+
                 return 0;
             })
         );
-        
+
         builder.then(Commands.literal("randomize_base_direction")
             .executes(context -> {
                 CommandSourceStack source = context.getSource();
@@ -118,17 +172,17 @@ public class GravityCommand {
                 })
             )
         );
-        
+
         builder.then(Commands.literal("set_relative_base_direction")
             .then(Commands.argument("relativeDirection", LocalDirectionArgumentType.instance)
                 .executes(context -> {
                     LocalDirection relativeDirection =
                         LocalDirectionArgumentType.getDirection(context, "relativeDirection");
-                    
+
                     Entity entity = context.getSource().getEntity();
-                    
+
                     Validate.isTrue(entity != null);
-                    
+
                     return executeSetRelativeBaseDir(
                         context.getSource(), relativeDirection,
                         List.of(entity)
@@ -138,9 +192,9 @@ public class GravityCommand {
                     .executes(context -> {
                         LocalDirection relativeDirection =
                             LocalDirectionArgumentType.getDirection(context, "relativeDirection");
-                        
+
                         Collection<? extends Entity> entities = EntityArgument.getEntities(context, "entities");
-                        
+
                         return executeSetRelativeBaseDir(
                             context.getSource(), relativeDirection,
                             entities
@@ -149,7 +203,7 @@ public class GravityCommand {
                 )
             )
         );
-        
+
         builder.then(Commands.literal("set_dimension_gravity_strength")
             .then(Commands.argument("strength", DoubleArgumentType.doubleArg(-20, 20))
                 .executes(context -> {
@@ -160,7 +214,7 @@ public class GravityCommand {
                 })
             )
         );
-        
+
         builder.then(Commands.literal("view_dimension_info")
             .executes(context -> {
                 ServerLevel world = context.getSource().getLevel();
@@ -171,17 +225,17 @@ public class GravityCommand {
                 return 0;
             })
         );
-        
+
         dispatcher.register(builder);
     }
-    
+
     private static int executeSetBaseStrength(Collection<? extends Entity> entities, double strength) {
         for (Entity entity : entities) {
             GravityChangerAPI.setBaseGravityStrength(entity, strength);
         }
         return entities.size();
     }
-    
+
     private static int executeRandomizeBaseDirection(CommandSourceStack source, Collection<? extends Entity> entities) {
         RandomSource random = source.getLevel().random;
         for (Entity entity : entities) {
@@ -190,7 +244,7 @@ public class GravityCommand {
         }
         return entities.size();
     }
-    
+
     private static void getSendFeedback(CommandSourceStack source, Entity entity, Direction gravityDirection) {
         Component text = GCUtil.getDirectionText(gravityDirection);
         if (source.getEntity() != null && source.getEntity() == entity) {
@@ -200,7 +254,7 @@ public class GravityCommand {
             source.sendSuccess(() -> Component.translatable("commands.gravity.get.other", entity.getDisplayName(), text), true);
         }
     }
-    
+
     private static int executeSetRelativeBaseDir(
         CommandSourceStack source, LocalDirection relativeDirection,
         Collection<? extends Entity> entities
@@ -216,11 +270,11 @@ public class GravityCommand {
             };
             Direction newGravityDirection = RotationUtil.dirPlayerToWorld(combinedRelativeDirection, gravityDirection);
             GravityChangerAPI.setBaseGravityDirection(entity, newGravityDirection);
-            
+
             getSendFeedback(source, entity, newGravityDirection);
             i++;
         }
         return i;
     }
-    
+
 }

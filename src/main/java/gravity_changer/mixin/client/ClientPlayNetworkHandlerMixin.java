@@ -25,11 +25,11 @@ public abstract class ClientPlayNetworkHandlerMixin {
     @Shadow
     @Final
     private Minecraft minecraft;
-    
+
     @Shadow
     @Final
     private Map<UUID, PlayerInfo> playerInfoMap;
-    
+
     @Redirect(
         method = "Lnet/minecraft/client/multiplayer/ClientPacketListener;handleGameEvent(Lnet/minecraft/network/protocol/game/ClientboundGameEventPacket;)V",
         at = @At(
@@ -39,14 +39,21 @@ public abstract class ClientPlayNetworkHandlerMixin {
         )
     )
     private double redirect_onGameStateChange_getEyeY_0(Player playerEntity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(playerEntity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return playerEntity.getEyeY();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return playerEntity.getEyePosition().y;
     }
-    
+
     @Redirect(
         method = "Lnet/minecraft/client/multiplayer/ClientPacketListener;handleGameEvent(Lnet/minecraft/network/protocol/game/ClientboundGameEventPacket;)V",
         at = @At(
@@ -56,14 +63,21 @@ public abstract class ClientPlayNetworkHandlerMixin {
         )
     )
     private double redirect_onGameStateChange_getX_0(Player playerEntity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(playerEntity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return playerEntity.getX();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return playerEntity.getEyePosition().x;
     }
-    
+
     @Redirect(
         method = "Lnet/minecraft/client/multiplayer/ClientPacketListener;handleGameEvent(Lnet/minecraft/network/protocol/game/ClientboundGameEventPacket;)V",
         at = @At(
@@ -73,14 +87,21 @@ public abstract class ClientPlayNetworkHandlerMixin {
         )
     )
     private double redirect_onGameStateChange_getZ_0(Player playerEntity) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(playerEntity);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return playerEntity.getZ();
         }
-        
+
+        // For both cardinal and arbitrary directions, we can use getEyePosition
+        // which already handles the correct eye position calculation
         return playerEntity.getEyePosition().z;
     }
-    
+
     @WrapOperation(
         method = "handleExplosion",
         at = @At(
@@ -90,12 +111,25 @@ public abstract class ClientPlayNetworkHandlerMixin {
         )
     )
     private Vec3 wrapOperation_onExplosion_add_0(Vec3 vec3d, double x, double y, double z, Operation<Vec3> original) {
+        // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(minecraft.player);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(minecraft.player);
+
+        // Check if we're using the default gravity direction
+        boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
+        if (isDefaultGravity) {
             return original.call(vec3d, x, y, z);
         }
-        
-        Vec3 player = RotationUtil.vecWorldToPlayer(x, y, z, gravityDirection);
+
+        Vec3 player;
+        // For cardinal directions, use the existing code path for backward compatibility
+        if (!GravityChangerAPI.isUsingVec3Gravity(minecraft.player)) {
+            player = RotationUtil.vecWorldToPlayer(x, y, z, gravityDirection);
+        } else {
+            // For arbitrary directions, use the Vec3-based method
+            player = RotationUtil.vecWorldToPlayerVec(new Vec3(x, y, z), gravityDirectionVec);
+        }
+
         return original.call(vec3d, player.x, player.y, player.z);
     }
 }

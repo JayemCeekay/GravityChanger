@@ -24,7 +24,7 @@ public abstract class GameRendererMixin {
     @Shadow
     @Final
     private Camera mainCamera;
-    
+
     @Inject(
         method = "Lnet/minecraft/client/renderer/GameRenderer;renderLevel(FJLcom/mojang/blaze3d/vertex/PoseStack;)V",
         at = @At(
@@ -37,19 +37,25 @@ public abstract class GameRendererMixin {
     private void inject_renderWorld(float tickDelta, long limitTime, PoseStack matrix, CallbackInfo ci) {
         if (this.mainCamera.getEntity() != null) {
             Entity focusedEntity = this.mainCamera.getEntity();
-            Direction gravityDirection = GravityChangerAPI.getGravityDirection(focusedEntity);
+            // Get the Vec3-based gravity direction instead of Direction-based
+            // This allows for arbitrary gravity directions
             RotationAnimation animation = GravityChangerAPI.getRotationAnimation(focusedEntity);
             if (animation == null) {
                 return;
             }
             long timeMs = focusedEntity.level().getGameTime() * 50 + (long) (tickDelta * 50);
-            Quaternionf currentGravityRotation = animation.getCurrentGravityRotation(gravityDirection, timeMs);
-    
+
+            // Use the Vec3-based method to get the gravity rotation
+            Quaternionf currentGravityRotation = animation.getCurrentGravityRotationVec(
+                GravityChangerAPI.getGravityDirectionVec(focusedEntity), 
+                timeMs
+            );
+
             if (animation.isInAnimation()) {
                 // make sure that frustum culling updates when running rotation animation
                 Minecraft.getInstance().levelRenderer.needsUpdate();
             }
-            
+
             matrix.mulPose(currentGravityRotation);
         }
     }
