@@ -27,12 +27,12 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
     protected abstract boolean suffocatesAt(BlockPos pos);
 
     @Redirect(
-        method = "Lnet/minecraft/client/player/LocalPlayer;suffocatesAt(Lnet/minecraft/core/BlockPos;)Z",
-        at = @At(
-            value = "NEW",
-            target = "(DDDDDD)Lnet/minecraft/world/phys/AABB;",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/client/player/LocalPlayer;suffocatesAt(Lnet/minecraft/core/BlockPos;)Z",
+            at = @At(
+                    value = "NEW",
+                    target = "(DDDDDD)Lnet/minecraft/world/phys/AABB;",
+                    ordinal = 0
+            )
     )
     private AABB redirect_wouldCollideAt_new_0(double x1, double y1, double z1, double x2, double y2, double z2, BlockPos pos) {
         // Get both Direction and Vec3 gravity directions
@@ -54,8 +54,8 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
             Vec3 posMask = RotationUtil.maskPlayerToWorld(1.0D, 0.0D, 1.0D, gravityDirection);
 
             return new AABB(
-                playerMask.multiply(playerBox.minX, playerBox.minY, playerBox.minZ).add(posMask.multiply(posBox.minX, posBox.minY, posBox.minZ)),
-                playerMask.multiply(playerBox.maxX, playerBox.maxY, playerBox.maxZ).add(posMask.multiply(posBox.maxX, posBox.maxY, posBox.maxZ))
+                    playerMask.multiply(playerBox.minX, playerBox.minY, playerBox.minZ).add(posMask.multiply(posBox.minX, posBox.minY, posBox.minZ)),
+                    playerMask.multiply(playerBox.maxX, playerBox.maxY, playerBox.maxZ).add(posMask.multiply(posBox.maxX, posBox.maxY, posBox.maxZ))
             );
         } else {
             // For arbitrary directions, we need a different approach
@@ -68,20 +68,19 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
 
             // Combine with position box
             return new AABB(
-                playerMin.x + posBox.minX, playerMin.y + posBox.minY, playerMin.z + posBox.minZ,
-                playerMax.x + posBox.maxX, playerMax.y + posBox.maxY, playerMax.z + posBox.maxZ
+                    playerMin.x + posBox.minX, playerMin.y + posBox.minY, playerMin.z + posBox.minZ,
+                    playerMax.x + posBox.maxX, playerMax.y + posBox.maxY, playerMax.z + posBox.maxZ
             );
         }
     }
 
     @Inject(
-        method = "Lnet/minecraft/client/player/LocalPlayer;moveTowardsClosestSpace(DD)V",
-        at = @At("HEAD"),
-        cancellable = true
+            method = "Lnet/minecraft/client/player/LocalPlayer;moveTowardsClosestSpace(DD)V",
+            at = @At("HEAD"),
+            cancellable = true
     )
     private void inject_pushOutOfBlocks(double x, double z, CallbackInfo ci) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(this);
+        // Get Vec3 gravity directions
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this);
 
         // Check if we're using the default gravity direction
@@ -93,13 +92,8 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
         Vec3 offset = new Vec3(x - this.getX(), 0.0D, z - this.getZ());
         Vec3 worldOffset;
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(this)) {
-            worldOffset = RotationUtil.vecPlayerToWorld(offset, gravityDirection);
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            worldOffset = RotationUtil.vecPlayerToWorldVec(offset, gravityDirectionVec);
-        }
+        // For arbitrary directions, use the Vec3-based method
+        worldOffset = RotationUtil.vecPlayerToWorldVec(offset, gravityDirectionVec);
 
         Vec3 pos = worldOffset.add(this.position());
         BlockPos blockPos = BlockPos.containing(pos);
@@ -115,16 +109,10 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
             for (Direction playerDirection : directions) {
                 Direction worldDirection;
 
-                // For cardinal directions, use the existing code path for backward compatibility
-                if (!GravityChangerAPI.isUsingVec3Gravity(this)) {
-                    worldDirection = RotationUtil.dirPlayerToWorld(playerDirection, gravityDirection);
-                } else {
-                    // For arbitrary directions, we need to handle this differently
-                    // We'll convert the player direction to a Vec3, transform it, and find the closest cardinal direction
-                    Vec3 playerDirVec = new Vec3(playerDirection.getStepX(), playerDirection.getStepY(), playerDirection.getStepZ());
-                    Vec3 worldDirVec = RotationUtil.vecPlayerToWorldVec(playerDirVec, gravityDirectionVec);
-                    worldDirection = Direction.getNearest(worldDirVec.x, worldDirVec.y, worldDirVec.z);
-                }
+                // We'll convert the player direction to a Vec3, transform it, and find the closest cardinal direction
+                Vec3 playerDirVec = new Vec3(playerDirection.getStepX(), playerDirection.getStepY(), playerDirection.getStepZ());
+                Vec3 worldDirVec = RotationUtil.vecPlayerToWorldVec(playerDirVec, gravityDirectionVec);
+                worldDirection = Direction.getNearest(worldDirVec.x, worldDirVec.y, worldDirVec.z);
 
                 double g = worldDirection.getAxis().choose(dx, dy, dz);
                 double distToEdge = worldDirection.getAxisDirection() == Direction.AxisDirection.POSITIVE ? 1.0D - g : g;
@@ -138,8 +126,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
                 Vec3 velocity = this.getDeltaMovement();
                 if (direction.getAxis() == Direction.Axis.X) {
                     this.setDeltaMovement(0.1D * (double) direction.getStepX(), velocity.y, velocity.z);
-                }
-                else if (direction.getAxis() == Direction.Axis.Z) {
+                } else if (direction.getAxis() == Direction.Axis.Z) {
                     this.setDeltaMovement(velocity.x, velocity.y, 0.1D * (double) direction.getStepZ());
                 }
             }

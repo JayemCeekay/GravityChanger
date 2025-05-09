@@ -253,7 +253,7 @@ public class GravityPlatingBlockEntity extends BlockEntity {
     }
     
     public static void tick(Level world, BlockPos blockPos, BlockState blockState, GravityPlatingBlockEntity be) {
-        if (!(blockState.getBlock() instanceof GravityPlatingBlock gravityPlatingBlock)) {
+        /*if (!(blockState.getBlock() instanceof GravityPlatingBlock gravityPlatingBlock)) {
             return;
         }
         
@@ -323,7 +323,7 @@ public class GravityPlatingBlockEntity extends BlockEntity {
             if (applies && GravityChangerMod.config.autoJumpOnGravityPlateInnerCorner) {
                 tryToDoCornerAutoJump(blockState, blockPos, entity, comp);
             }
-        }
+        }*/
     }
     
     // when approaching an inward corner, do auto-jump to make it smoothly go forward
@@ -331,7 +331,7 @@ public class GravityPlatingBlockEntity extends BlockEntity {
         BlockState blockState, BlockPos blockPos,
         Entity entity, GravityComponent comp
     ) {
-        if (!entity.onGround()) {
+        /*if (!entity.onGround()) {
             return;
         }
         
@@ -380,7 +380,7 @@ public class GravityPlatingBlockEntity extends BlockEntity {
                     return;
                 }
             }
-        }
+        }*/
         
     }
     

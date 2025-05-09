@@ -34,7 +34,6 @@ public abstract class ServerPlayerEntityMixin_FallDistance {
         ServerPlayer this_ = (ServerPlayer) (Object) this;
 
         // Get both Direction and Vec3 gravity directions
-        Direction gravity = GravityChangerAPI.getGravityDirection(this_);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this_);
 
         // Check if we're using the default gravity direction
@@ -47,13 +46,8 @@ public abstract class ServerPlayerEntityMixin_FallDistance {
         Vec3 worldVec = new Vec3(dx, dy, dz);
         Vec3 localVec;
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(this_)) {
-            localVec = RotationUtil.vecWorldToPlayer(worldVec, gravity);
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            localVec = RotationUtil.vecWorldToPlayerVec(worldVec, gravityDirectionVec);
-        }
+        // For arbitrary directions, use the Vec3-based method
+        localVec = RotationUtil.vecWorldToPlayerVec(worldVec, gravityDirectionVec);
 
         args.set(0, localVec.y());
     }

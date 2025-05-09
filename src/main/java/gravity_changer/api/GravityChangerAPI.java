@@ -29,7 +29,8 @@ public abstract class GravityChangerAPI {
      * For backward compatibility
      */
     public static Direction getGravityDirection(Entity entity) {
-        return getGravityComponent(entity).getCurrGravityDirection();
+        // Convert Vec3 gravity to Direction for backward compatibility
+        return RotationUtil.vec3ToDirection(getGravityDirectionVec(entity));
     }
 
     /**
@@ -72,7 +73,8 @@ public abstract class GravityChangerAPI {
      * For backward compatibility
      */
     public static Direction getBaseGravityDirection(Entity entity) {
-        return getGravityComponent(entity).getBaseGravityDirection();
+        // Convert Vec3 gravity to Direction for backward compatibility
+        return RotationUtil.vec3ToDirection(getBaseGravityDirectionVec(entity));
     }
 
     /**
@@ -117,15 +119,8 @@ public abstract class GravityChangerAPI {
      * For backward compatibility
      */
     public static void instantlySetClientBaseGravityDirection(Entity entity, Direction direction) {
-        Validate.isTrue(entity.level().isClientSide(), "should only be used on client");
-
-        GravityComponent component = getGravityComponent(entity);
-
-        component.setBaseGravityDirection(direction);
-
-        component.updateGravityStatus();
-
-        component.forceApplyGravityChange();
+        // Convert Direction to Vec3 and call the Vec3 version
+        instantlySetClientBaseGravityDirectionVec(entity, RotationUtil.directionToVec3(direction));
     }
 
     /**
@@ -155,7 +150,8 @@ public abstract class GravityChangerAPI {
      * For backward compatibility
      */
     public static Vec3 getWorldVelocity(Entity entity) {
-        return RotationUtil.vecPlayerToWorld(entity.getDeltaMovement(), getGravityDirection(entity));
+        // Use Vec3-based method internally
+        return getWorldVelocityVec(entity);
     }
 
     /**
@@ -172,7 +168,8 @@ public abstract class GravityChangerAPI {
      * For backward compatibility
      */
     public static void setWorldVelocity(Entity entity, Vec3 worldVelocity) {
-        entity.setDeltaMovement(RotationUtil.vecWorldToPlayer(worldVelocity, getGravityDirection(entity)));
+        // Use Vec3-based method internally
+        setWorldVelocityVec(entity, worldVelocity);
     }
 
     /**
@@ -188,7 +185,8 @@ public abstract class GravityChangerAPI {
      * For backward compatibility
      */
     public static Vec3 getEyeOffset(Entity entity) {
-        return RotationUtil.vecPlayerToWorld(0, (double) entity.getEyeHeight(), 0, getGravityDirection(entity));
+        // Use Vec3-based method internally
+        return getEyeOffsetVec(entity);
     }
 
     /**

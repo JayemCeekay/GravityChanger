@@ -215,8 +215,7 @@ public abstract class AreaEffectCloudEntityMixin extends Entity {
         double e = this.getY();
         double l = this.getZ();
 
-        // Get both Direction and Vec3 gravity directions
-        net.minecraft.core.Direction gravityDirection = GravityChangerAPI.getGravityDirection(this);
+        // Get Vec3 gravity directions
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this);
 
         // Check if we're using the default gravity direction
@@ -224,20 +223,12 @@ public abstract class AreaEffectCloudEntityMixin extends Entity {
 
         Vec3 modify;
         // For cardinal directions, use the existing code path for backward compatibility
-        if (isDefaultGravity || !GravityChangerAPI.isUsingVec3Gravity(this)) {
-            modify = RotationUtil.vecWorldToPlayer(d, e, l, gravityDirection);
-            d = modify.x + (double) (Mth.cos(h) * k);
-            e = modify.y;
-            l = modify.z + (double) (Mth.sin(h) * k);
-            modify = RotationUtil.vecPlayerToWorld(d, e, l, gravityDirection);
-        } else {
             // For arbitrary directions, use the Vec3-based method
             modify = RotationUtil.vecWorldToPlayerVec(new Vec3(d, e, l), gravityDirectionVec);
             d = modify.x + (double) (Mth.cos(h) * k);
             e = modify.y;
             l = modify.z + (double) (Mth.sin(h) * k);
             modify = RotationUtil.vecPlayerToWorldVec(new Vec3(d, e, l), gravityDirectionVec);
-        }
 
         args.set(1, modify.x);
         args.set(2, modify.y);

@@ -12,16 +12,15 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 @Mixin(AbstractSkeleton.class)
 public abstract class AbstractSkeletonEntityMixin {
     @Redirect(
-        method = "Lnet/minecraft/world/entity/monster/AbstractSkeleton;performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/monster/AbstractSkeleton;performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
+                    ordinal = 0
+            )
     )
     private double redirect_attack_getX_0(LivingEntity target) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
+        // Get Vec3 gravity directions
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(target);
 
         // Check if we're using the default gravity direction
@@ -30,26 +29,21 @@ public abstract class AbstractSkeletonEntityMixin {
             return target.getX();
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(target)) {
-            return target.position().add(RotationUtil.vecPlayerToWorld(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D, gravityDirection)).x;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return target.position().add(RotationUtil.vecPlayerToWorldVec(new net.minecraft.world.phys.Vec3(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D), gravityDirectionVec)).x;
-        }
+        // For arbitrary directions, use the Vec3-based method
+        return target.position().add(RotationUtil.vecPlayerToWorldVec(new net.minecraft.world.phys.Vec3(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D), gravityDirectionVec)).x;
+
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/monster/AbstractSkeleton;performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getY(D)D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/monster/AbstractSkeleton;performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getY(D)D",
+                    ordinal = 0
+            )
     )
     private double redirect_attack_getBodyY_0(LivingEntity target, double heightScale) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
+        // Get Vec3 gravity directions
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(target);
 
         // Check if we're using the default gravity direction
@@ -58,26 +52,20 @@ public abstract class AbstractSkeletonEntityMixin {
             return target.getY(heightScale);
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(target)) {
-            return target.position().add(RotationUtil.vecPlayerToWorld(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D, gravityDirection)).y;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return target.position().add(RotationUtil.vecPlayerToWorldVec(new net.minecraft.world.phys.Vec3(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D), gravityDirectionVec)).y;
-        }
+        // For arbitrary directions, use the Vec3-based method
+        return target.position().add(RotationUtil.vecPlayerToWorldVec(new net.minecraft.world.phys.Vec3(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D), gravityDirectionVec)).y;
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/monster/AbstractSkeleton;performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/monster/AbstractSkeleton;performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
+                    ordinal = 0
+            )
     )
     private double redirect_attack_getZ_0(LivingEntity target) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
+        // Get Vec3 gravity directions
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(target);
 
         // Check if we're using the default gravity direction
@@ -86,25 +74,19 @@ public abstract class AbstractSkeletonEntityMixin {
             return target.getZ();
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(target)) {
-            return target.position().add(RotationUtil.vecPlayerToWorld(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D, gravityDirection)).z;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return target.position().add(RotationUtil.vecPlayerToWorldVec(new net.minecraft.world.phys.Vec3(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D), gravityDirectionVec)).z;
-        }
+        // For arbitrary directions, use the Vec3-based method
+        return target.position().add(RotationUtil.vecPlayerToWorldVec(new net.minecraft.world.phys.Vec3(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D), gravityDirectionVec)).z;
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/monster/AbstractSkeleton;performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Ljava/lang/Math;sqrt(D)D"
-        )
+            method = "Lnet/minecraft/world/entity/monster/AbstractSkeleton;performRangedAttack(Lnet/minecraft/world/entity/LivingEntity;F)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Ljava/lang/Math;sqrt(D)D"
+            )
     )
     private double redirect_attack_sqrt_0(double value, LivingEntity target, float pullProgress) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
+        // Get Vec3 gravity directions
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(target);
 
         // Check if we're using the default gravity direction

@@ -50,8 +50,7 @@ public abstract class DirectionMixin {
         )
     )
     private static float wrapOperation_getEntityFacingOrder_getPitch_0(Entity entity, float tickDelta, Operation<Float> original) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
+        // Get Vec3 gravity directions
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
@@ -60,13 +59,8 @@ public abstract class DirectionMixin {
             return original.call(entity, tickDelta);
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(entity)) {
-            return RotationUtil.rotPlayerToWorld(entity.getViewYRot(tickDelta), original.call(entity, tickDelta), gravityDirection).y;
-        } else {
             // For arbitrary directions, use the Vec3-based method
             return RotationUtil.rotPlayerToWorldVec(entity.getViewYRot(tickDelta), original.call(entity, tickDelta), gravityDirectionVec).y;
-        }
     }
 
     @WrapOperation(
@@ -78,8 +72,7 @@ public abstract class DirectionMixin {
         )
     )
     private static float wrapOperation_getLookDirectionForAxis_getYaw_0(Entity entity, float tickDelta, Operation<Float> original) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
+        // Get Vec3 gravity directions
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
@@ -88,13 +81,9 @@ public abstract class DirectionMixin {
             return original.call(entity, tickDelta);
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(entity)) {
-            return RotationUtil.rotPlayerToWorld(original.call(entity, tickDelta), entity.getViewXRot(tickDelta), gravityDirection).x;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.rotPlayerToWorldVec(original.call(entity, tickDelta), entity.getViewXRot(tickDelta), gravityDirectionVec).x;
-        }
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.rotPlayerToWorldVec(original.call(entity, tickDelta), entity.getViewXRot(tickDelta), gravityDirectionVec).x;
+
     }
 
     @WrapOperation(
@@ -106,8 +95,7 @@ public abstract class DirectionMixin {
         )
     )
     private static float wrapOperation_getLookDirectionForAxis_getYaw_1(Entity entity, float tickDelta, Operation<Float> original) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
+        // Get Vec3 gravity directions
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
@@ -115,14 +103,8 @@ public abstract class DirectionMixin {
         if (isDefaultGravity) {
             return original.call(entity, tickDelta);
         }
-
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(entity)) {
-            return RotationUtil.rotPlayerToWorld(original.call(entity, tickDelta), entity.getViewXRot(tickDelta), gravityDirection).x;
-        } else {
             // For arbitrary directions, use the Vec3-based method
             return RotationUtil.rotPlayerToWorldVec(original.call(entity, tickDelta), entity.getViewXRot(tickDelta), gravityDirectionVec).x;
-        }
     }
 
     @WrapOperation(
@@ -134,8 +116,7 @@ public abstract class DirectionMixin {
         )
     )
     private static float wrapOperation_getLookDirectionForAxis_getPitch_0(Entity entity, float tickDelta, Operation<Float> original) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
+        // Get Vec3 gravity directions
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
@@ -143,13 +124,7 @@ public abstract class DirectionMixin {
         if (isDefaultGravity) {
             return original.call(entity, tickDelta);
         }
+        return RotationUtil.rotPlayerToWorldVec(entity.getViewYRot(tickDelta), original.call(entity, tickDelta), gravityDirectionVec).y;
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(entity)) {
-            return RotationUtil.rotPlayerToWorld(entity.getViewYRot(tickDelta), original.call(entity, tickDelta), gravityDirection).y;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.rotPlayerToWorldVec(entity.getViewYRot(tickDelta), original.call(entity, tickDelta), gravityDirectionVec).y;
-        }
     }
 }

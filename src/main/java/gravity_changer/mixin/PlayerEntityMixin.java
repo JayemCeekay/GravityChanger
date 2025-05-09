@@ -313,7 +313,6 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     )
     private AABB wrapOperation_method_30263_offset_0(AABB box, double x, double y, double z, Operation<AABB> original) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -323,13 +322,10 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         }
 
         Vec3 world;
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(this)) {
-            world = RotationUtil.vecPlayerToWorld(x, y, z, gravityDirection);
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            world = RotationUtil.vecPlayerToWorldVec(new Vec3(x, y, z), gravityDirectionVec);
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        world = RotationUtil.vecPlayerToWorldVec(new Vec3(x, y, z), gravityDirectionVec);
+
 
         return original.call(box, world.x, world.y, world.z);
     }
@@ -363,7 +359,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         // Check if we're using cardinal directions for both entities
         boolean useCardinal = targetGravityDirection.getAxis() != null && attackerGravityDirection.getAxis() != null;
 
-        if (useCardinal) {
+        if (!GravityChangerAPI.isUsingVec3Gravity(attacker) && !GravityChangerAPI.isUsingVec3Gravity(target)) {
             // Use Direction-based methods for backward compatibility
             return RotationUtil.rotWorldToPlayer(
                 RotationUtil.rotPlayerToWorld(original.call(attacker), attacker.getXRot(), attackerGravityDirection), 
@@ -407,7 +403,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         // Check if we're using cardinal directions for both entities
         boolean useCardinal = targetGravityDirection.getAxis() != null && attackerGravityDirection.getAxis() != null;
 
-        if (useCardinal) {
+        if (!GravityChangerAPI.isUsingVec3Gravity(attacker) && !GravityChangerAPI.isUsingVec3Gravity(target)) {
             // Use Direction-based methods for backward compatibility
             return RotationUtil.rotWorldToPlayer(
                 RotationUtil.rotPlayerToWorld(original.call(attacker), attacker.getXRot(), attackerGravityDirection), 
@@ -518,8 +514,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         )
     )
     private void modify_tickMovement_expand_0(Args args) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
+        // Get Vec3 gravity directions
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -527,14 +522,11 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         if (isDefaultGravity) return;
 
         Vec3 vec3d;
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            vec3d = RotationUtil.maskPlayerToWorld(args.get(0), args.get(1), args.get(2), gravityDirection);
-        } else {
+
             // For arbitrary directions, we need to use a different approach
             // Since maskPlayerToWorld is for cardinal directions only, we'll use vecPlayerToWorldVec
             vec3d = RotationUtil.vecPlayerToWorldVec(new Vec3(args.get(0), args.get(1), args.get(2)), gravityDirectionVec);
-        }
+
 
         args.set(0, vec3d.x);
         args.set(1, vec3d.y);

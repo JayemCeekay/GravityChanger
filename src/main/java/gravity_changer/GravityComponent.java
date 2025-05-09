@@ -79,12 +79,10 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
     boolean initialized = false;
 
     // not synchronized
-    private Direction prevGravityDirection = Direction.DOWN;
     private Vec3 prevGravityDirectionVec = new Vec3(0, -1, 0); // DOWN direction as a normalized vector
     private double prevGravityStrength = 1.0;
 
     // the base gravity direction
-    Direction baseGravityDirection = Direction.DOWN;
     Vec3 baseGravityDirectionVec = new Vec3(0, -1, 0); // DOWN direction as a normalized vector
 
     // Flag to specify if we're using Vec3 gravity or Direction gravity
@@ -101,7 +99,6 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
 
     public final Entity entity;
 
-    private Direction currGravityDirection = Direction.DOWN;
     private Vec3 currGravityDirectionVec = new Vec3(0, -1, 0); // DOWN direction as a normalized vector
     private double currGravityStrength = 1.0;
     private double currentEffectPriority = Double.MIN_VALUE;
@@ -131,37 +128,15 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
 
     @Override
     public void readFromNbt(CompoundTag tag) {
-        // Read useVec3Gravity flag
-        if (tag.contains("useVec3Gravity")) {
-            useVec3Gravity = tag.getBoolean("useVec3Gravity");
-        } else {
-            useVec3Gravity = false; // Default to Direction-based gravity for backward compatibility
-        }
-
-        // Read Direction-based gravity for backward compatibility
-        if (tag.contains("baseGravityDirection")) {
-            baseGravityDirection = Direction.byName(tag.getString("baseGravityDirection"));
-            // Initialize Vec3-based gravity from Direction
-            baseGravityDirectionVec = directionToVec3(baseGravityDirection);
-        }
-        else {
-            baseGravityDirection = Direction.DOWN;
-            baseGravityDirectionVec = new Vec3(0, -1, 0);
-        }
-
-        // Read Vec3-based gravity if available
+        // Read Vec3-based gravity
         if (tag.contains("baseGravityDirectionVecX")) {
             double x = tag.getDouble("baseGravityDirectionVecX");
             double y = tag.getDouble("baseGravityDirectionVecY");
             double z = tag.getDouble("baseGravityDirectionVecZ");
             baseGravityDirectionVec = new Vec3(x, y, z).normalize();
-            // Update Direction-based gravity for backward compatibility
-            baseGravityDirection = vec3ToDirection(baseGravityDirectionVec);
-
-            // If Vec3 gravity data is present and not a cardinal direction, set useVec3Gravity to true
-            if (!baseGravityDirectionVec.equals(directionToVec3(baseGravityDirection))) {
-                useVec3Gravity = true;
-            }
+        }
+        else {
+            baseGravityDirectionVec = new Vec3(0, -1, 0); // Default to DOWN
         }
 
         if (tag.contains("baseGravityStrength")) {
@@ -174,25 +149,15 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
         // the current gravity is serialized to avoid unnecessary gravity rotation when entering world
         // do not deserialize it when for client player when not initializing
         if (!initialized || shouldAcceptServerSync()) {
-            // Read Direction-based gravity for backward compatibility
-            if (tag.contains("currentGravityDirection")) {
-                currGravityDirection = Direction.byName(tag.getString("currentGravityDirection"));
-                // Initialize Vec3-based gravity from Direction
-                currGravityDirectionVec = directionToVec3(currGravityDirection);
-            }
-            else {
-                currGravityDirection = Direction.DOWN;
-                currGravityDirectionVec = new Vec3(0, -1, 0);
-            }
-
-            // Read Vec3-based gravity if available
+            // Read Vec3-based gravity
             if (tag.contains("currentGravityDirectionVecX")) {
                 double x = tag.getDouble("currentGravityDirectionVecX");
                 double y = tag.getDouble("currentGravityDirectionVecY");
                 double z = tag.getDouble("currentGravityDirectionVecZ");
                 currGravityDirectionVec = new Vec3(x, y, z).normalize();
-                // Update Direction-based gravity for backward compatibility
-                currGravityDirection = vec3ToDirection(currGravityDirectionVec);
+            }
+            else {
+                currGravityDirectionVec = new Vec3(0, -1, 0); // Default to DOWN
             }
 
             if (tag.contains("currentGravityStrength")) {
@@ -204,12 +169,11 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
         }
 
         if (!initialized) {
-            prevGravityDirection = currGravityDirection;
             prevGravityDirectionVec = currGravityDirectionVec;
             prevGravityStrength = currGravityStrength;
             initialized = true;
-            applyGravityDirectionChange(
-                prevGravityDirection, currGravityDirection, currentRotationParameters, true
+            applyGravityDirectionChangeVec(
+                prevGravityDirectionVec, currGravityDirectionVec, currentRotationParameters, true
             );
         }
     }
@@ -220,13 +184,6 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
 
     @Override
     public void writeToNbt(@NotNull CompoundTag tag) {
-        // Write useVec3Gravity flag
-        tag.putBoolean("useVec3Gravity", useVec3Gravity);
-
-        // Write Direction-based gravity for backward compatibility
-        tag.putString("baseGravityDirection", baseGravityDirection.getName());
-        tag.putString("currentGravityDirection", currGravityDirection.getName());
-
         // Write Vec3-based gravity
         tag.putDouble("baseGravityDirectionVecX", baseGravityDirectionVec.x);
         tag.putDouble("baseGravityDirectionVecY", baseGravityDirectionVec.y);
@@ -267,33 +224,19 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
             return;
         }
 
-        Direction oldGravityDirection = currGravityDirection;
         Vec3 oldGravityDirectionVec = currGravityDirectionVec;
         double oldGravityStrength = currGravityStrength;
 
         Entity vehicle = entity.getVehicle();
         if (vehicle != null) {
             // If riding a vehicle, inherit its gravity settings
-            if (GravityChangerAPI.isUsingVec3Gravity(vehicle)) {
-                currGravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(vehicle);
-                currGravityDirection = vec3ToDirection(currGravityDirectionVec);
-                useVec3Gravity = true;
-            } else {
-                currGravityDirection = GravityChangerAPI.getGravityDirection(vehicle);
-                currGravityDirectionVec = directionToVec3(currGravityDirection);
-                useVec3Gravity = false;
-            }
+            currGravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(vehicle);
             currGravityStrength = GravityChangerAPI.getGravityStrength(vehicle);
         }
         else {
-            // Use the appropriate gravity type based on the flag
-            if (useVec3Gravity) {
-                currGravityDirectionVec = baseGravityDirectionVec;
-                currGravityDirection = vec3ToDirection(currGravityDirectionVec);
-            } else {
-                currGravityDirection = baseGravityDirection;
-                currGravityDirectionVec = directionToVec3(currGravityDirection);
-            }
+            // Always use Vec3-based gravity
+            currGravityDirectionVec = baseGravityDirectionVec;
+
             currGravityStrength = baseGravityStrength;
             currGravityStrength *= GravityChangerAPI.getDimensionGravityStrength(entity.level());
             currGravityStrength *= GravityChangerMod.config.gravityStrengthMultiplier;
@@ -304,14 +247,6 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
             isFiringUpdateEvent = true;
             try {
                 GRAVITY_UPDATE_EVENT.invoker().update(entity, this);
-                // Handle Direction-based gravity effects
-                if (delayApplyDirEffect != null) {
-                    applyGravityDirectionEffect(
-                        delayApplyDirEffect.direction(),
-                        delayApplyDirEffect.rotationParameters(), delayApplyDirEffect.priority()
-                    );
-                    delayApplyDirEffect = null;
-                }
 
                 // Handle Vec3-based gravity effects
                 if (delayApplyDirEffectVec != null) {
@@ -321,6 +256,16 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
                     );
                     delayApplyDirEffectVec = null;
                 }
+
+                // Handle Direction-based gravity effects for backward compatibility
+                if (delayApplyDirEffect != null) {
+                    applyGravityDirectionEffect(
+                        delayApplyDirEffect.direction(),
+                        delayApplyDirEffect.rotationParameters(), delayApplyDirEffect.priority()
+                    );
+                    delayApplyDirEffect = null;
+                }
+
                 currGravityStrength *= delayApplyStrengthEffect;
                 delayApplyStrengthEffect = 1.0;
             }
@@ -336,8 +281,7 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
             lastUpdateTickCount = entity.tickCount;
         }
 
-        boolean changed = oldGravityDirection != currGravityDirection ||
-            !gravityDirectionsEqual(oldGravityDirectionVec, currGravityDirectionVec) ||
+        boolean changed = !gravityDirectionsEqual(oldGravityDirectionVec, currGravityDirectionVec) ||
             Math.abs(oldGravityStrength - currGravityStrength) > 0.0001;
         if (changed) {
             sendSyncPacketToOtherPlayers();
@@ -350,17 +294,13 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
 
     /**
      * Apply a gravity direction effect using a cardinal Direction
+     * For backward compatibility
      */
     public void applyGravityDirectionEffect(
         @NotNull Direction direction,
         @Nullable RotationParameters rotationParameters,
         double priority
     ) {
-        // When using Direction-based gravity, set the flag to false
-        if (priority > currentEffectPriority) {
-            useVec3Gravity = false;
-        }
-
         // Convert Direction to Vec3 and call the Vec3 version
         applyGravityDirectionEffectVec(
             directionToVec3(direction),
@@ -368,14 +308,8 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
             priority
         );
 
-        // Also update the Direction-based fields for backward compatibility
-        if (isFiringUpdateEvent) {
-            if (priority > currentEffectPriority) {
-                currGravityDirection = direction;
-            }
-        }
-        else {
-            // When not firing event, store it on delayApplyEffect.
+        // When not firing event, store it on delayApplyEffect for backward compatibility
+        if (!isFiringUpdateEvent) {
             // The effect could come from another entity ticking,
             // but there is no guarantee for ticking order between entities.
             // (the ticking order does not change according to EntityTickList)
@@ -402,16 +336,6 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
             if (priority > currentEffectPriority) {
                 currentEffectPriority = priority;
                 currGravityDirectionVec = direction;
-
-                // Update the Direction-based field for backward compatibility
-                currGravityDirection = vec3ToDirection(direction);
-
-                // Check if this is a non-cardinal direction
-                Vec3 cardinalVec = directionToVec3(currGravityDirection);
-                if (!gravityDirectionsEqual(direction, cardinalVec)) {
-                    // If it's not a cardinal direction, set the flag to true
-                    useVec3Gravity = true;
-                }
 
                 if (rotationParameters != null) {
                     currentRotationParameters = rotationParameters;
@@ -792,14 +716,6 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
     }
 
     /**
-     * Get the current gravity direction as a Direction (cardinal direction)
-     * For backward compatibility
-     */
-    public Direction getCurrGravityDirection() {
-        return currGravityDirection;
-    }
-
-    /**
      * Get the current gravity direction as a Vec3 (arbitrary direction)
      */
     public Vec3 getCurrGravityDirectionVec() {
@@ -815,27 +731,12 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
     }
 
     /**
-     * Get the previous gravity direction as a Direction (cardinal direction)
-     * For backward compatibility
-     */
-    public Direction getPrevGravityDirection() {
-        return prevGravityDirection;
-    }
-
-    /**
      * Get the previous gravity direction as a Vec3 (arbitrary direction)
      */
     public Vec3 getPrevGravityDirectionVec() {
         return prevGravityDirectionVec;
     }
 
-    /**
-     * Get the base gravity direction as a Direction (cardinal direction)
-     * For backward compatibility
-     */
-    public Direction getBaseGravityDirection() {
-        return baseGravityDirection;
-    }
 
     /**
      * Get the base gravity direction as a Vec3 (arbitrary direction)
@@ -853,11 +754,8 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
             return;
         }
 
-        baseGravityDirection = gravityDirection;
-        baseGravityDirectionVec = directionToVec3(gravityDirection);
-        // When setting Direction-based gravity, set the flag to false
-        useVec3Gravity = false;
-        needsSync = true;
+        // Convert Direction to Vec3 and call the Vec3-based version
+        setBaseGravityDirectionVec(directionToVec3(gravityDirection));
     }
 
     /**
@@ -872,40 +770,32 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
         gravityDirection = gravityDirection.normalize();
 
         baseGravityDirectionVec = gravityDirection;
-        // Update Direction-based field for backward compatibility
-        baseGravityDirection = vec3ToDirection(gravityDirection);
-
-        // When setting Vec3-based gravity, set the flag to true if it's not a cardinal direction
-        if (!baseGravityDirectionVec.equals(directionToVec3(baseGravityDirection))) {
-            useVec3Gravity = true;
-        }
 
         needsSync = true;
     }
 
     /**
      * Get whether Vec3-based gravity is being used
+     * Always returns true as we only support Vec3-based gravity now
      */
     public boolean isUsingVec3Gravity() {
-        return useVec3Gravity;
+        return true;
     }
 
     /**
      * Set whether to use Vec3-based gravity
+     * Does nothing as we only support Vec3-based gravity now
      */
     public void setUseVec3Gravity(boolean useVec3) {
-        useVec3Gravity = useVec3;
-        needsSync = true;
+        // No-op, we always use Vec3-based gravity now
     }
 
     /**
      * Reset gravity to default (DOWN direction)
      */
     public void reset() {
-        baseGravityDirection = Direction.DOWN;
         baseGravityDirectionVec = new Vec3(0, -1, 0);
         baseGravityStrength = 1.0;
-        useVec3Gravity = false; // Reset to Direction-based gravity
         needsSync = true;
     }
 
@@ -919,27 +809,13 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
             currentRotationParameters = RotationParameters.getDefault();
         }
 
-        // Choose the appropriate method based on the useVec3Gravity flag
-        if (useVec3Gravity) {
-            // Use Vec3-based gravity change if the flag is set
-            if (!gravityDirectionsEqual(prevGravityDirectionVec, currGravityDirectionVec)) {
-                applyGravityDirectionChangeVec(
-                    prevGravityDirectionVec, currGravityDirectionVec,
-                    currentRotationParameters, false
-                );
-                prevGravityDirectionVec = currGravityDirectionVec;
-                prevGravityDirection = currGravityDirection; // Update Direction for compatibility
-            }
-        } else {
-            // Use Direction-based gravity change if the flag is not set
-            if (prevGravityDirection != currGravityDirection) {
-                applyGravityDirectionChange(
-                    prevGravityDirection, currGravityDirection,
-                    currentRotationParameters, false
-                );
-                prevGravityDirection = currGravityDirection;
-                prevGravityDirectionVec = currGravityDirectionVec; // Update Vec3 for compatibility
-            }
+        // Always use Vec3-based gravity change
+        if (!gravityDirectionsEqual(prevGravityDirectionVec, currGravityDirectionVec)) {
+            applyGravityDirectionChangeVec(
+                prevGravityDirectionVec, currGravityDirectionVec,
+                currentRotationParameters, false
+            );
+            prevGravityDirectionVec = currGravityDirectionVec;
         }
 
         if (Math.abs(currGravityStrength - prevGravityStrength) > 0.0001) {
@@ -1021,11 +897,10 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
 
     /**
      * Not needed in normal cases.
-     * Only used in {@link GravityChangerAPI#instantlySetClientBaseGravityDirection(Entity, Direction)}
+     * Only used in {@link GravityChangerAPI#instantlySetClientBaseGravityDirectionVec(Entity, Vec3)}
      * Used by ImmPtl.
      */
     public void forceApplyGravityChange() {
-        prevGravityDirection = currGravityDirection;
         prevGravityDirectionVec = currGravityDirectionVec;
         prevGravityStrength = currGravityStrength;
     }

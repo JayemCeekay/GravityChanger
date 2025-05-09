@@ -113,23 +113,6 @@ public class RotationAnimation {
     }
 
     /**
-     * Get the new looking direction for Direction-based gravity
-     * For backward compatibility
-     */
-    private Vec3 getNewLookingDirection(
-        Direction newGravity, Direction prevGravity, Entity player,
-        boolean rotateView
-    ) {
-        // Convert Direction to Vec3 and call the Vec3 version
-        return getNewLookingDirectionVec(
-            RotationUtil.directionToVec3(newGravity),
-            RotationUtil.directionToVec3(prevGravity),
-            player,
-            rotateView
-        );
-    }
-
-    /**
      * Get the new looking direction for Vec3-based gravity
      * Supports arbitrary gravity directions
      */
@@ -169,26 +152,6 @@ public class RotationAnimation {
     /**
      * It returns the rotation that applies to world for rendering.
      * To get the rotation that applies entity, conjugate it.
-     * For backward compatibility
-     */
-    public Quaternionf getCurrentGravityRotation(Direction currentGravity, long timeMs) {
-        update(timeMs);
-
-        if (!inAnimation) {
-            return RotationUtil.getWorldRotationQuaternion(currentGravity);
-        }
-
-        double delta = (double) (timeMs - startTimeMs) / (endTimeMs - startTimeMs);
-
-        return RotationUtil.interpolate(
-            startGravityRotation, endGravityRotation,
-            mapProgress((float) delta)
-        );
-    }
-
-    /**
-     * It returns the rotation that applies to world for rendering.
-     * To get the rotation that applies entity, conjugate it.
      * Supports arbitrary gravity directions
      */
     public Quaternionf getCurrentGravityRotationVec(Vec3 currentGravity, long timeMs) {
@@ -212,25 +175,6 @@ public class RotationAnimation {
         if (timeMs > endTimeMs) {
             inAnimation = false;
         }
-    }
-
-    /**
-     * When doing gravity flipping, the rotation center is the player bounding box center.
-     * But the player feet pos changes abruptly. So we need special calculation to eye offset.
-     *
-     * Note when rotateView is false, it will cause non-smooth eye offset change
-     * 
-     * For backward compatibility
-     */
-    public Vec3 getEyeOffset(
-        Quaternionf gravityRot, Vec3 localEyeOffset, Direction newGravity
-    ) {
-        // Convert Direction to Vec3 and call the Vec3 version
-        return getEyeOffsetVec(
-            gravityRot,
-            localEyeOffset,
-            RotationUtil.directionToVec3(newGravity)
-        );
     }
 
     /**

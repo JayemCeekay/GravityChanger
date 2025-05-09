@@ -136,14 +136,6 @@ public class GravityCommand {
                 GravityComponent component = GravityChangerAPI.getGravityComponent(entity);
                 Vec3 gravityVec = component.getBaseGravityDirectionVec();
 
-                context.getSource().sendSuccess(
-                    () -> Component.translatable(
-                        "gravity_changer.command.inform",
-                        component.getBaseGravityDirection().getName(),
-                        component.getBaseGravityStrength()
-                    ), false
-                );
-
                 // Also show the Vec3-based gravity direction
                 context.getSource().sendSuccess(
                     () -> Component.translatable(

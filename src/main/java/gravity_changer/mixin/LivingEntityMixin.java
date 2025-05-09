@@ -40,16 +40,15 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getY()D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getY()D",
+                    ordinal = 0
+            )
     )
     private double redirect_travel_getY_0(LivingEntity livingEntity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(livingEntity);
 
         // Check if we're using the default gravity direction
@@ -58,22 +57,17 @@ public abstract class LivingEntityMixin extends Entity {
             return livingEntity.getY();
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(livingEntity)) {
-            return RotationUtil.vecWorldToPlayer(livingEntity.position(), gravityDirection).y;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(livingEntity.position(), gravityDirectionVec).y;
-        }
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(livingEntity.position(), gravityDirectionVec).y;
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getY()D",
-            ordinal = 1
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getY()D",
+                    ordinal = 1
+            )
     )
     private double redirect_travel_getY_1(LivingEntity livingEntity) {
         // Get both Direction and Vec3 gravity directions
@@ -96,12 +90,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getY()D",
-            ordinal = 2
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getY()D",
+                    ordinal = 2
+            )
     )
     private double redirect_travel_getY_2(LivingEntity livingEntity) {
         // Get both Direction and Vec3 gravity directions
@@ -124,12 +118,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getY()D",
-            ordinal = 3
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getY()D",
+                    ordinal = 3
+            )
     )
     private double redirect_travel_getY_3(LivingEntity livingEntity) {
         // Get both Direction and Vec3 gravity directions
@@ -152,17 +146,16 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @ModifyVariable(
-        method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
-        at = @At(
-            value = "INVOKE_ASSIGN",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getLookAngle()Lnet/minecraft/world/phys/Vec3;",
-            ordinal = 0
-        ),
-        ordinal = 2
+            method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
+            at = @At(
+                    value = "INVOKE_ASSIGN",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getLookAngle()Lnet/minecraft/world/phys/Vec3;",
+                    ordinal = 0
+            ),
+            ordinal = 2
     )
     private Vec3 modify_travel_Vec3d_2(Vec3 vec3d) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
+        // Get Vec3 gravity directions
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -171,22 +164,17 @@ public abstract class LivingEntityMixin extends Entity {
             return vec3d;
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            return RotationUtil.vecWorldToPlayer(vec3d, gravityDirection);
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(vec3d, gravityDirectionVec);
-        }
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(vec3d, gravityDirectionVec);
     }
 
     @ModifyArg(
-        method = "playBlockFallSound",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"
-        ),
-        index = 0
+            method = "playBlockFallSound",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"
+            ),
+            index = 0
     )
     private BlockPos modify_playBlockFallSound_getBlockState_0(BlockPos blockPos) {
         // Get both Direction and Vec3 gravity directions
@@ -209,12 +197,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;hasLineOfSight(Lnet/minecraft/world/entity/Entity;)Z",
-        at = @At(
-            value = "NEW",
-            target = "(DDD)Lnet/minecraft/world/phys/Vec3;",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;hasLineOfSight(Lnet/minecraft/world/entity/Entity;)Z",
+            at = @At(
+                    value = "NEW",
+                    target = "(DDD)Lnet/minecraft/world/phys/Vec3;",
+                    ordinal = 0
+            )
     )
     private Vec3 redirect_canSee_new_0(double x, double y, double z) {
         // Get both Direction and Vec3 gravity directions
@@ -233,12 +221,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;hasLineOfSight(Lnet/minecraft/world/entity/Entity;)Z",
-        at = @At(
-            value = "NEW",
-            target = "(DDD)Lnet/minecraft/world/phys/Vec3;",
-            ordinal = 1
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;hasLineOfSight(Lnet/minecraft/world/entity/Entity;)Z",
+            at = @At(
+                    value = "NEW",
+                    target = "(DDD)Lnet/minecraft/world/phys/Vec3;",
+                    ordinal = 1
+            )
     )
     private Vec3 redirect_canSee_new_1(double x, double y, double z, Entity entity) {
         // Get both Direction and Vec3 gravity directions
@@ -257,31 +245,28 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Inject(
-        method = "Lnet/minecraft/world/entity/LivingEntity;getLocalBoundsForPose(Lnet/minecraft/world/entity/Pose;)Lnet/minecraft/world/phys/AABB;",
-        at = @At("RETURN"),
-        cancellable = true
+            method = "Lnet/minecraft/world/entity/LivingEntity;getLocalBoundsForPose(Lnet/minecraft/world/entity/Pose;)Lnet/minecraft/world/phys/AABB;",
+            at = @At("RETURN"),
+            cancellable = true
     )
     private void inject_getBoundingBox(Pose pose, CallbackInfoReturnable<AABB> cir) {
         // Get both Direction and Vec3 gravity directions
         Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
-
         // Check if we're using the default gravity direction
         boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
-        if (isDefaultGravity) return;
+        if (isDefaultGravity) {
+            return;
+        }
 
         AABB box = cir.getReturnValue();
-        if (gravityDirection.getAxisDirection() == Direction.AxisDirection.POSITIVE) {
+        if (gravityDirection.getAxisDirection() == Direction.AxisDirection.POSITIVE || gravityDirectionVec.y >= 0) {
             box = box.move(0.0D, -1.0E-6D, 0.0D);
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            cir.setReturnValue(RotationUtil.boxPlayerToWorld(box, gravityDirection));
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            cir.setReturnValue(RotationUtil.boxPlayerToWorldVec(box, gravityDirectionVec));
-        }
+        // For arbitrary directions, use the Vec3-based method
+        cir.setReturnValue(RotationUtil.boxPlayerToWorldVec(box, gravityDirectionVec));
+
     }
 
 //    @Inject(
@@ -311,12 +296,12 @@ public abstract class LivingEntityMixin extends Entity {
 //    }
 
     @WrapOperation(
-        method = "tick",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
-            ordinal = 0
-        )
+            method = "tick",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
+                    ordinal = 0
+            )
     )
     private double wrapOperation_tick_getX_0(LivingEntity livingEntity, Operation<Double> original) {
         // Get both Direction and Vec3 gravity directions
@@ -331,9 +316,9 @@ public abstract class LivingEntityMixin extends Entity {
 
         // Calculate the delta movement vector
         Vec3 deltaMovement = new Vec3(
-            original.call(livingEntity) - livingEntity.xo,
-            livingEntity.getY() - livingEntity.yo,
-            livingEntity.getZ() - livingEntity.zo
+                original.call(livingEntity) - livingEntity.xo,
+                livingEntity.getY() - livingEntity.yo,
+                livingEntity.getZ() - livingEntity.zo
         );
 
         // For cardinal directions, use the existing code path for backward compatibility
@@ -346,12 +331,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @WrapOperation(
-        method = "tick",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
-            ordinal = 0
-        )
+            method = "tick",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
+                    ordinal = 0
+            )
     )
     private double wrapOperation_tick_getZ_0(LivingEntity livingEntity, Operation<Double> original) {
         // Get both Direction and Vec3 gravity directions
@@ -366,9 +351,9 @@ public abstract class LivingEntityMixin extends Entity {
 
         // Calculate the delta movement vector
         Vec3 deltaMovement = new Vec3(
-            livingEntity.getX() - livingEntity.xo,
-            livingEntity.getY() - livingEntity.yo,
-            original.call(livingEntity) - livingEntity.zo
+                livingEntity.getX() - livingEntity.xo,
+                livingEntity.getY() - livingEntity.yo,
+                original.call(livingEntity) - livingEntity.zo
         );
 
         // For cardinal directions, use the existing code path for backward compatibility
@@ -381,12 +366,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/Entity;getX()D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/Entity;getX()D",
+                    ordinal = 0
+            )
     )
     private double redirect_damage_getX_0(Entity attacker) {
         // Get both Direction and Vec3 gravity directions for this entity
@@ -419,12 +404,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/Entity;getZ()D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/Entity;getZ()D",
+                    ordinal = 0
+            )
     )
     private double redirect_damage_getZ_0(Entity attacker) {
         // Get both Direction and Vec3 gravity directions for this entity
@@ -457,12 +442,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
+                    ordinal = 0
+            )
     )
     private double redirect_damage_getX_0(LivingEntity target) {
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
@@ -474,12 +459,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
+                    ordinal = 0
+            )
     )
     private double redirect_damage_getZ_0(LivingEntity target) {
         Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
@@ -491,12 +476,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;blockedByShield(Lnet/minecraft/world/entity/LivingEntity;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;blockedByShield(Lnet/minecraft/world/entity/LivingEntity;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
+                    ordinal = 0
+            )
     )
     private double redirect_knockback_getX_0(LivingEntity target) {
         // Get both Direction and Vec3 gravity directions
@@ -520,12 +505,12 @@ public abstract class LivingEntityMixin extends Entity {
 
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;blockedByShield(Lnet/minecraft/world/entity/LivingEntity;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;blockedByShield(Lnet/minecraft/world/entity/LivingEntity;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
+                    ordinal = 0
+            )
     )
     private double redirect_knockback_getZ_0(LivingEntity target) {
         // Get both Direction and Vec3 gravity directions
@@ -548,12 +533,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;blockedByShield(Lnet/minecraft/world/entity/LivingEntity;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
-            ordinal = 1
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;blockedByShield(Lnet/minecraft/world/entity/LivingEntity;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
+                    ordinal = 1
+            )
     )
     private double redirect_knockback_getX_1(LivingEntity attacker, LivingEntity target) {
         // Get both Direction and Vec3 gravity directions for target
@@ -586,12 +571,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;blockedByShield(Lnet/minecraft/world/entity/LivingEntity;)V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
-            ordinal = 1
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;blockedByShield(Lnet/minecraft/world/entity/LivingEntity;)V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
+                    ordinal = 1
+            )
     )
     private double redirect_knockback_getZ_1(LivingEntity attacker, LivingEntity target) {
         // Get both Direction and Vec3 gravity directions for target
@@ -624,12 +609,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Redirect(
-        method = "Lnet/minecraft/world/entity/LivingEntity;baseTick()V",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/core/BlockPos;containing(DDD)Lnet/minecraft/core/BlockPos;",
-            ordinal = 0
-        )
+            method = "Lnet/minecraft/world/entity/LivingEntity;baseTick()V",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/core/BlockPos;containing(DDD)Lnet/minecraft/core/BlockPos;",
+                    ordinal = 0
+            )
     )
     private BlockPos redirect_baseTick_new_0(double x, double y, double z) {
         // Get both Direction and Vec3 gravity directions
@@ -648,12 +633,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @WrapOperation(
-        method = "spawnItemParticles",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/phys/Vec3;add(DDD)Lnet/minecraft/world/phys/Vec3;",
-            ordinal = 0
-        )
+            method = "spawnItemParticles",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/phys/Vec3;add(DDD)Lnet/minecraft/world/phys/Vec3;",
+                    ordinal = 0
+            )
     )
     private Vec3 wrapOperation_spawnItemParticles_add_0(Vec3 vec3d, double x, double y, double z, Operation<Vec3> original) {
         // Get both Direction and Vec3 gravity directions
@@ -679,13 +664,13 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @ModifyVariable(
-        method = "Lnet/minecraft/world/entity/LivingEntity;spawnItemParticles(Lnet/minecraft/world/item/ItemStack;I)V",
-        at = @At(
-            value = "INVOKE_ASSIGN",
-            target = "Lnet/minecraft/world/phys/Vec3;yRot(F)Lnet/minecraft/world/phys/Vec3;",
+            method = "Lnet/minecraft/world/entity/LivingEntity;spawnItemParticles(Lnet/minecraft/world/item/ItemStack;I)V",
+            at = @At(
+                    value = "INVOKE_ASSIGN",
+                    target = "Lnet/minecraft/world/phys/Vec3;yRot(F)Lnet/minecraft/world/phys/Vec3;",
+                    ordinal = 0
+            ),
             ordinal = 0
-        ),
-        ordinal = 0
     )
     private Vec3 modify_spawnItemParticles_Vec3d_0(Vec3 vec3d) {
         // Get both Direction and Vec3 gravity directions
@@ -708,11 +693,11 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @ModifyArgs(
-        method = "tickEffects",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/level/Level;addParticle(Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V"
-        )
+            method = "tickEffects",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/level/Level;addParticle(Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V"
+            )
     )
     private void modify_tickStatusEffects_addParticle_0(Args args) {
         // Get both Direction and Vec3 gravity directions
@@ -740,12 +725,12 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @ModifyArgs(
-        method = "makePoofParticles",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/world/level/Level;addParticle(Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V",
-            ordinal = 0
-        )
+            method = "makePoofParticles",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/level/Level;addParticle(Lnet/minecraft/core/particles/ParticleOptions;DDDDDD)V",
+                    ordinal = 0
+            )
     )
     private void modify_addDeathParticless_addParticle_0(Args args) {
         // Get both Direction and Vec3 gravity directions
@@ -773,13 +758,13 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @ModifyVariable(
-        method = "Lnet/minecraft/world/entity/LivingEntity;isDamageSourceBlocked(Lnet/minecraft/world/damagesource/DamageSource;)Z",
-        at = @At(
-            value = "INVOKE_ASSIGN",
-            target = "Lnet/minecraft/world/entity/LivingEntity;getViewVector(F)Lnet/minecraft/world/phys/Vec3;",
-            ordinal = 0
-        ),
-        ordinal = 1
+            method = "Lnet/minecraft/world/entity/LivingEntity;isDamageSourceBlocked(Lnet/minecraft/world/damagesource/DamageSource;)Z",
+            at = @At(
+                    value = "INVOKE_ASSIGN",
+                    target = "Lnet/minecraft/world/entity/LivingEntity;getViewVector(F)Lnet/minecraft/world/phys/Vec3;",
+                    ordinal = 0
+            ),
+            ordinal = 1
     )
     private Vec3 modify_blockedByShield_Vec3d_1(Vec3 vec3d) {
         // Get both Direction and Vec3 gravity directions

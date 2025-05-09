@@ -242,7 +242,7 @@ public abstract class RotationUtil {
         Quaternionf rotation = getRotationBetweenVec(gravityDirection, downVector);
 
         // Return the conjugate for camera rotation
-        return new Quaternionf(rotation).conjugate();
+        return new Quaternionf(rotation);
     }
 
     /**

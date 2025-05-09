@@ -27,25 +27,23 @@ public abstract class EntityRenderMixin {
     //    if(gravityDirection == Direction.DOWN) {
     //        return entityRenderDispatcher.getRotation();
     //    }
-////
+
+    /// /
     //    Quaternionf Quaternionf = RotationUtil.getCameraRotationQuaternion(gravityDirection).copy();
     //    quaternion.conjugate();
     //    quaternion.hamiltonProduct(entityRenderDispatcher.getRotation().copy());
     //    return quaternion;
     //}
-
-
     @ModifyExpressionValue(
-        method = "renderNameTag",
-        at = @At(
-            value = "INVOKE",
-            target = "Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;cameraOrientation()Lorg/joml/Quaternionf;",
-            ordinal = 0
-        )
+            method = "renderNameTag",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/renderer/entity/EntityRenderDispatcher;cameraOrientation()Lorg/joml/Quaternionf;",
+                    ordinal = 0
+            )
     )
     private Quaternionf modifyExpressionValue_renderLabelIfPresent_getRotation_0(Quaternionf originalRotation, Entity entity) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
+        // Get Vec3 gravity direction
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
@@ -55,15 +53,10 @@ public abstract class EntityRenderMixin {
         }
 
         Quaternionf quaternion;
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(entity)) {
-            quaternion = new Quaternionf(RotationUtil.getCameraRotationQuaternion(gravityDirection));
-            quaternion.conjugate(); // Conjugate is needed for the original method
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            quaternion = RotationUtil.getCameraRotationQuaternionVec(gravityDirectionVec);
-            // The Vec3 method already returns a conjugated quaternion
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        quaternion = RotationUtil.getCameraRotationQuaternionVec(gravityDirectionVec);
+        quaternion.conjugate();
 
         quaternion.mul(originalRotation);
         return quaternion;

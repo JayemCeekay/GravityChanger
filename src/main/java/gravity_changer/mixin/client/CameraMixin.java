@@ -57,8 +57,7 @@ public abstract class CameraMixin {
         Operation<Void> original, BlockGetter area, Entity focusedEntity,
         boolean thirdPerson, boolean inverseView, float tickDelta
     ) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(focusedEntity);
+        // Get Vec3 gravity directions
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(focusedEntity);
         RotationAnimation animation = GravityChangerAPI.getRotationAnimation(focusedEntity);
 
@@ -81,9 +80,9 @@ public abstract class CameraMixin {
         // Use the Vec3-based method to get the gravity rotation
         Quaternionf gravityRotation = animation.getCurrentGravityRotationVec(gravityDirectionVec, timeMs);
 
-        double entityX = Mth.lerp((double) tickDelta, focusedEntity.xo, focusedEntity.getX());
-        double entityY = Mth.lerp((double) tickDelta, focusedEntity.yo, focusedEntity.getY());
-        double entityZ = Mth.lerp((double) tickDelta, focusedEntity.zo, focusedEntity.getZ());
+        double entityX = Mth.lerp(tickDelta, focusedEntity.xo, focusedEntity.getX());
+        double entityY = Mth.lerp(tickDelta, focusedEntity.yo, focusedEntity.getY());
+        double entityZ = Mth.lerp(tickDelta, focusedEntity.zo, focusedEntity.getZ());
 
         double currentCameraY = Mth.lerp(tickDelta, this.eyeHeightOld, this.eyeHeight);
 
@@ -114,7 +113,6 @@ public abstract class CameraMixin {
     private void inject_setRotation(CallbackInfo ci) {
         if (this.entity != null) {
             // Get both Direction and Vec3 gravity directions
-            Direction gravityDirection = GravityChangerAPI.getGravityDirection(this.entity);
             Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this.entity);
             RotationAnimation animation = GravityChangerAPI.getRotationAnimation(entity);
 
