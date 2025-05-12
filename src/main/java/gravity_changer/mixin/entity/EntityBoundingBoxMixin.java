@@ -45,7 +45,7 @@ public abstract class EntityBoundingBoxMixin {
             if (((ComponentProvider) entity).getComponentContainer() == null) {
                 return;
             }
-            
+
             if (!GravityChangerAPI.GRAVITY_COMPONENT.maybeGet(entity).isPresent()) {
                 return;
             }
@@ -59,16 +59,17 @@ public abstract class EntityBoundingBoxMixin {
 
         // Get the current AABB
         AABB box = cir.getReturnValue();
-        
+
         // If it's already an OrientedBoundingBox, no need to transform it
         if (box instanceof OrientedBoundingBox) return;
-        
+
         // Transform the AABB to an OrientedBoundingBox
-        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBBDynamic(
-            box.move(this.position.reverse()), gravityDirection, entity);
-            
-        // Move the OBB to the entity's position
+        // First move the box to local space (relative to entity position)
+        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(
+            box.move(this.position.reverse()), gravityDirection);
+
+        // Move the OBB back to the entity's position
         // Since OrientedBoundingBox now extends AABB, we can return it directly
-        cir.setReturnValue(obb);
+        cir.setReturnValue(obb.move(this.position));
     }
 }

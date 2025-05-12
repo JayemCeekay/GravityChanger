@@ -378,7 +378,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         }
 
         // Transform the AABB to an OrientedBoundingBox
-        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(box, gravityDirectionVec, entity);
+        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(box, gravityDirectionVec);
 
         // Create a movement vector in player space
         Vec3 movement = new Vec3(x, y, z);

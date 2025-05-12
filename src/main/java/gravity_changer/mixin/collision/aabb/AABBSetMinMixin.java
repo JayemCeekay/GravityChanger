@@ -103,7 +103,7 @@ public abstract class AABBSetMinMixin {
             );
             
             // Transform the modified box to an OrientedBoundingBox
-            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(modifiedBox, gravityDirectionVec, entity);
+            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(modifiedBox, gravityDirectionVec);
             
             // Return the transformed box
             cir.setReturnValue(obb);

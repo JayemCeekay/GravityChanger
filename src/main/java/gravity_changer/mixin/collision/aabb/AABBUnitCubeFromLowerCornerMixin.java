@@ -59,7 +59,7 @@ public abstract class AABBUnitCubeFromLowerCornerMixin {
             );
             
             // Transform the standard box to an OrientedBoundingBox
-            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(standardBox, gravityDirectionVec, entity);
+            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(standardBox, gravityDirectionVec);
             
             // Return the transformed box
             cir.setReturnValue(obb);

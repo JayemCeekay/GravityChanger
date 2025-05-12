@@ -5,97 +5,77 @@ import gravity_changer.util.RotationUtil;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.Objects;
+
 /**
  * Represents an oriented (rotated) bounding box in 3D space.
- * This extends Minecraft's AABB to represent boxes that aren't aligned with the world axes,
+ * Unlike Minecraft's AABB, this can represent boxes that aren't aligned with the world axes,
  * which is essential for proper collision detection with non-standard gravity directions.
  */
 public class OrientedBoundingBox extends AABB {
     // The axis-aligned bounding box in the local coordinate system
     private final AABB localBox;
-
-    // The rotation that transforms from local to world coordinates
     private final Rotor rotation;
-
-    // The center point of the box in world coordinates
     private final Vec3 center;
+    private final AABB boundingAABB;
 
-    /**
-     * Creates an OrientedBoundingBox from an AABB and a gravity direction.
-     *
-     * @param box        The axis-aligned bounding box in world space
-     * @param gravityDir The gravity direction vector
-     * @return An OrientedBoundingBox representing the rotated box
-     */
-    public static OrientedBoundingBox fromAABB(AABB box, Vec3 gravityDir) {
-        return fromAABB(box, gravityDir, Vec3.ZERO);
+    public OrientedBoundingBox(AABB sourceBox, Rotor rotation, Vec3 center) {
+        // Must call super first in Java 17+
+        super(sourceBox.minX, sourceBox.minY, sourceBox.minZ,
+                sourceBox.maxX, sourceBox.maxY, sourceBox.maxZ);
+
+        // Validate parameters after super
+        if (sourceBox == null || rotation == null || center == null) {
+            throw new IllegalArgumentException("OrientedBoundingBox parameters cannot be null");
+        }
+
+        // Create defensive copies of mutable objects
+        this.localBox = sourceBox;
+        this.rotation = rotation;
+        this.center = center;
+
+        // Calculate the bounding box last
+        AABB calculated = calculateBoundingAABB();
+        this.boundingAABB = new AABB(calculated.minX, calculated.minY, calculated.minZ,
+                calculated.maxX, calculated.maxY, calculated.maxZ);
     }
 
     /**
      * Creates an OrientedBoundingBox from an AABB and a gravity direction, with an offset.
      * The offset is applied after rotation to align the box with the entity model.
      *
-     * @param box        The axis-aligned bounding box in world space
+     * @param box The axis-aligned bounding box in world space
      * @param gravityDir The gravity direction vector
-     * @param offset     The offset to apply after rotation
      * @return An OrientedBoundingBox representing the rotated box
      */
-    public static OrientedBoundingBox fromAABB(AABB box, Vec3 gravityDir, Vec3 offset) {
+    public static OrientedBoundingBox fromAABB(AABB box, Vec3 gravityDir) {
         // Default gravity is (0, -1, 0)
         Vec3 defaultGravity = new Vec3(0, -1, 0);
 
         // Create a rotor that rotates from default gravity to the specified gravity
         Rotor rotation = Rotor.from(defaultGravity, gravityDir);
 
-        // Create a local box with the same dimensions as the original
-        double width = box.maxX - box.minX;
-        double height = box.maxY - box.minY;
-        double depth = box.maxZ - box.minZ;
+        // Transform the box to the local coordinate system
+        // We use the inverse rotation to transform from world to local space
+        //AABB localBox = RotationUtil.boxWorldToPlayerVec(box, gravityDir);
 
-        // Create a centered local box with the same dimensions
-        AABB localBox = new AABB(
-                -width / 2, -height / 2, -depth / 2,
-                width / 2, height / 2, depth / 2
-        );
         // Calculate the center of the box in world coordinates
         Vec3 center = new Vec3(
-                (box.minX + box.maxX) / 2,
-                (box.minY + box.maxY) / 2,
-                (box.minZ + box.maxZ) / 2
+            (box.minX + box.maxX) / 2,
+            (box.minY + box.maxY) / 2,
+            (box.minZ + box.maxZ) / 2
         );
 
-        // Apply the offset in world space
-        if (offset.x != 0 || offset.y != 0 || offset.z != 0) {
-            // Rotate the offset to align with the gravity direction
-            Vec3 rotatedOffset = RotationUtil.vecPlayerToWorldVec(offset, gravityDir);
-            center = center.add(rotatedOffset);
-        }
-
-        return new OrientedBoundingBox(localBox, rotation, center);
+        return new OrientedBoundingBox(box, rotation, center);
     }
 
     /**
-     * Creates an OrientedBoundingBox with the specified parameters.
+     * Calculates the axis-aligned bounding box that contains this oriented bounding box.
+     * This is used for broad-phase collision detection.
      *
-     * @param localBox The axis-aligned bounding box in the local coordinate system
-     * @param rotation The rotation that transforms from local to world coordinates
-     * @param center   The center point of the box in world coordinates
+     * @return The bounding AABB
      */
-    public OrientedBoundingBox(AABB localBox, Rotor rotation, Vec3 center) {
-        // Call the AABB constructor with the bounding box's min and max coordinates
-        super(localBox.minX, localBox.minY, localBox.minZ,
-                localBox.maxX, localBox.maxY, localBox.maxZ);
-
-        this.localBox = localBox;
-        this.rotation = rotation;
-        this.center = center;
-    }
-
-    /**
-     * Helper method to calculate the bounding AABB before constructing the OrientedBoundingBox.
-     * This is needed because we need to call the AABB constructor with the bounding box's coordinates.
-     */
-    private static AABB calculateBoundingAABB(AABB localBox, Rotor rotation, Vec3 center) {
+    private AABB calculateBoundingAABB() {
         // Get the 8 corners of the local box
         Vec3[] corners = new Vec3[8];
         corners[0] = new Vec3(localBox.minX, localBox.minY, localBox.minZ);
@@ -129,41 +109,29 @@ public class OrientedBoundingBox extends AABB {
     }
 
     /**
-     * Calculates the axis-aligned bounding box that contains this oriented bounding box.
-     * This is used for broad-phase collision detection.
-     *
-     * @return The bounding AABB
-     */
-    private AABB calculateBoundingAABB() {
-        return calculateBoundingAABB(this.localBox, this.rotation, this.center);
-    }
-
-    /**
      * Checks if this oriented bounding box intersects with another AABB.
-     * This overrides the AABB.intersects method to use the OBB intersection logic.
      *
      * @param other The AABB to check for intersection
      * @return True if the boxes intersect, false otherwise
      */
-    @Override
     public boolean intersects(AABB other) {
         // First, do a quick check with the bounding AABB for early rejection
         // Use a direct AABB intersection test to avoid triggering the AABBMixin
-        if (!directIntersectsAABB(localBox, other)) {
+        if (!directIntersectsAABB(boundingAABB, other)) {
             return false;
         }
 
         // Transform the other box to the local coordinate system
         Vec3 otherCenter = new Vec3(
-                (other.minX + other.maxX) / 2,
-                (other.minY + other.maxY) / 2,
-                (other.minZ + other.maxZ) / 2
+            (other.minX + other.maxX) / 2,
+            (other.minY + other.maxY) / 2,
+            (other.minZ + other.maxZ) / 2
         );
 
         Vec3 otherExtents = new Vec3(
-                (other.maxX - other.minX) / 2,
-                (other.maxY - other.minY) / 2,
-                (other.maxZ - other.minZ) / 2
+            (other.maxX - other.minX) / 2,
+            (other.maxY - other.minY) / 2,
+            (other.maxZ - other.minZ) / 2
         );
 
         // Apply the inverse rotation to transform the other box to our local space
@@ -182,16 +150,16 @@ public class OrientedBoundingBox extends AABB {
 
         // Get the local box extents
         Vec3 localExtents = new Vec3(
-                (localBox.maxX - localBox.minX) / 2,
-                (localBox.maxY - localBox.minY) / 2,
-                (localBox.maxZ - localBox.minZ) / 2
+            (localBox.maxX - localBox.minX) / 2,
+            (localBox.maxY - localBox.minY) / 2,
+            (localBox.maxZ - localBox.minZ) / 2
         );
 
         // Get the local box center
         Vec3 localCenter = new Vec3(
-                (localBox.minX + localBox.maxX) / 2,
-                (localBox.minY + localBox.maxY) / 2,
-                (localBox.minZ + localBox.maxZ) / 2
+            (localBox.minX + localBox.maxX) / 2,
+            (localBox.minY + localBox.maxY) / 2,
+            (localBox.minZ + localBox.maxZ) / 2
         );
 
         // Check for intersection along each axis
@@ -213,8 +181,8 @@ public class OrientedBoundingBox extends AABB {
      */
     private static boolean directIntersectsAABB(AABB box1, AABB box2) {
         return box1.minX < box2.maxX && box1.maxX > box2.minX &&
-                box1.minY < box2.maxY && box1.maxY > box2.minY &&
-                box1.minZ < box2.maxZ && box1.maxZ > box2.minZ;
+               box1.minY < box2.maxY && box1.maxY > box2.minY &&
+               box1.minZ < box2.maxZ && box1.maxZ > box2.minZ;
     }
 
     /**
@@ -227,7 +195,7 @@ public class OrientedBoundingBox extends AABB {
     public boolean intersects(OrientedBoundingBox other) {
         // First, do a quick check with the bounding AABBs for early rejection
         // Use a direct AABB intersection test to avoid triggering the AABBMixin
-        if (!directIntersectsAABB(localBox, other.localBox)) {
+        if (!directIntersectsAABB(boundingAABB, other.boundingAABB)) {
             return false;
         }
 
@@ -275,7 +243,7 @@ public class OrientedBoundingBox extends AABB {
     /**
      * Checks if the given axis is a separating axis between two sets of corners.
      *
-     * @param axis     The axis to check
+     * @param axis The axis to check
      * @param cornersA The corners of the first box
      * @param cornersB The corners of the second box
      * @return True if the axis separates the boxes, false otherwise
@@ -356,6 +324,15 @@ public class OrientedBoundingBox extends AABB {
     }
 
     /**
+     * Gets the axis-aligned bounding box that contains this oriented bounding box.
+     *
+     * @return The bounding AABB
+     */
+    public AABB getBoundingAABB() {
+        return boundingAABB;
+    }
+
+    /**
      * Gets the local axis-aligned bounding box.
      *
      * @return The local AABB
@@ -381,4 +358,18 @@ public class OrientedBoundingBox extends AABB {
     public Vec3 getCenter() {
         return center;
     }
+
+    /**
+     * Returns a new OrientedBoundingBox moved by the specified x, y, z offset.
+     *
+     * @param x The x offset
+     * @param y The y offset
+     * @param z The z offset
+     * @return A new moved OrientedBoundingBox
+     */
+    public OrientedBoundingBox move(double x, double y, double z) {
+        Vec3 offset = new Vec3(x, y, z);
+        return new OrientedBoundingBox(this.localBox, this.rotation, this.center.add(offset));
+    }
+
 }

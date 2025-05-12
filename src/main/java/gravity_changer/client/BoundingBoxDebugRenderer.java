@@ -127,7 +127,7 @@ public class BoundingBoxDebugRenderer {
             AABB localBox = RotationUtil.boxWorldToPlayerVec(worldBox, gravityDirectionVec);
 
             // Create the OBB with the local box, rotation, and center
-            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBBDynamic(localBox, gravityDirectionVec, entity);
+            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(localBox, gravityDirectionVec);
 
             // Render the oriented bounding box in green
             renderOrientedBoundingBox(matrixStack, vertexConsumer, obb, 0.0F, 1.0F, 0.0F, 1.0F);

@@ -94,50 +94,7 @@ public abstract class EntityMixin {
     @Shadow
     public abstract AABB getBoundingBox();
 
-    /**
-     * Injects into Entity.getBoundingBox() to return an OrientedBoundingBox instead of an AABB
-     * for entities with non-default gravity.
-     */
-  /*  @Inject(
-            method = "getBoundingBox",
-            at = @At("RETURN"),
-            cancellable = true
-    )
-    private void inject_getBoundingBox(CallbackInfoReturnable<AABB> cir) {
-        Entity entity = ((Entity) (Object) this);
-        if (entity instanceof Projectile) return;
-
-        // Check if the entity has a gravity component
-        try {
-            if (((ComponentProvider) entity).getComponentContainer() == null) {
-                return;
-            }
-
-            if (!GravityChangerAPI.GRAVITY_COMPONENT.maybeGet(entity).isPresent()) {
-                return;
-            }
-        } catch (NullPointerException e) {
-            // Entity's component container might not be initialized yet
-            return;
-        }
-
-        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
-        if (gravityDirection.equals(new Vec3(0, -1, 0))) return;
-
-        // Get the current AABB
-        AABB box = cir.getReturnValue();
-
-        // If it's already an OrientedBoundingBox, no need to transform it
-        if (box instanceof OrientedBoundingBox) return;
-
-        // Transform the AABB to an OrientedBoundingBox
-        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBBDynamic(
-            box.move(this.position.reverse()), gravityDirection, entity);
-
-        // Move the OBB to the entity's position
-        // Since OrientedBoundingBox now extends AABB, we can return it directly
-        cir.setReturnValue(obb);
-    }*/
+    // Note: The getBoundingBox() injection has been moved to EntityBoundingBoxMixin.java
 
     @Shadow
     public static Vec3 collideWithShapes(Vec3 movement, AABB entityBoundingBox, List<VoxelShape> collisions) {
@@ -207,10 +164,11 @@ public abstract class EntityMixin {
         }
 
         // Use OrientedBoundingBoxTransformer to transform the box with dynamic shrink factors and offsets
-        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBBDynamic(box, gravityDirection, entity);
+        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(box, gravityDirection);
 
+        // Move the OBB back to the entity's position before returning it
         // Return the OBB directly instead of getting its bounding AABB
-        cir.setReturnValue(obb);
+        cir.setReturnValue(obb.move(this.position));
     }
 
     @Inject(
@@ -227,7 +185,7 @@ public abstract class EntityMixin {
 
         // Use OrientedBoundingBoxTransformer to transform the box with entity-specific shrink factor
         Entity entity = (Entity) (Object) this;
-        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(box, gravityDirection, entity);
+        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(box, gravityDirection);
 
         cir.setReturnValue(obb.move(this.position));
     }

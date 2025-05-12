@@ -286,23 +286,9 @@ public class GravityDiagnosticCommand {
             // Create an OrientedBoundingBox from the player's AABB
             OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(
                 player.getBoundingBox(), 
-                gravityComponent.getCurrGravityDirectionVec(),
-                player
-            );
+                gravityComponent.getCurrGravityDirectionVec());
 
             // Get shrink factors and offsets
-            Vec3 shrinkFactors = OrientedBoundingBoxTransformer.calculateShrinkFactors(player);
-            Vec3 dynamicShrinkFactors = OrientedBoundingBoxTransformer.calculateDynamicShrinkFactors(
-                player, 
-                gravityComponent.getCurrGravityDirectionVec(), 
-                player.getBoundingBox()
-            );
-            Vec3 offset = OrientedBoundingBoxTransformer.calculateOffset(player);
-            Vec3 dynamicOffset = OrientedBoundingBoxTransformer.calculateDynamicOffset(
-                player, 
-                gravityComponent.getCurrGravityDirectionVec(), 
-                player.getBoundingBox()
-            );
 
             // Write the OrientedBoundingBox information
             writer.write("Local Box Min: " + formatVec3(new Vec3(obb.getLocalBox().minX, obb.getLocalBox().minY, obb.getLocalBox().minZ)));
@@ -320,18 +306,6 @@ public class GravityDiagnosticCommand {
             writer.write("OBB Max: " + formatVec3(new Vec3(obb.maxX, obb.maxY, obb.maxZ)));
             writer.newLine();
             writer.write("OBB Size: " + formatVec3(new Vec3(obb.getXsize(), obb.getYsize(), obb.getZsize())));
-            writer.newLine();
-
-            // Write shrink factors and offsets
-            writer.write("--- OBB Shrink Factors and Offsets ---");
-            writer.newLine();
-            writer.write("Default Shrink Factors: " + formatVec3(shrinkFactors));
-            writer.newLine();
-            writer.write("Dynamic Shrink Factors: " + formatVec3(dynamicShrinkFactors));
-            writer.newLine();
-            writer.write("Default Offset: " + formatVec3(offset));
-            writer.newLine();
-            writer.write("Dynamic Offset: " + formatVec3(dynamicOffset));
             writer.newLine();
 
             // Check if we're using diagonal gravity (which triggers shrinking)

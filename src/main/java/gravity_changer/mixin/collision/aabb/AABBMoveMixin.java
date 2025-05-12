@@ -3,7 +3,6 @@ package gravity_changer.mixin.collision.aabb;
 import gravity_changer.api.GravityChangerAPI;
 import gravity_changer.collision.CollisionContext;
 import gravity_changer.collision.OrientedBoundingBox;
-import gravity_changer.collision.OrientedBoundingBoxTransformer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -125,13 +124,8 @@ public abstract class AABBMoveMixin {
         // Get the current entity from the collision context
         Entity entity = CollisionContext.getCurrentEntity();
 
-        // Create a new AABB with the moved coordinates
-        AABB movedBox = new AABB(
-            obb.minX + x, obb.minY + y, obb.minZ + z,
-            obb.maxX + x, obb.maxY + y, obb.maxZ + z
-        );
-
-        // Transform the moved box to an OrientedBoundingBox, passing the entity for proper shrink factors and offsets
-        return OrientedBoundingBoxTransformer.transformToOBB(movedBox, gravityDir, entity);
+        // Simply move the OBB by the specified amount
+        // This preserves the orientation and other properties of the OBB
+        return obb.move(x, y, z);
     }
 }

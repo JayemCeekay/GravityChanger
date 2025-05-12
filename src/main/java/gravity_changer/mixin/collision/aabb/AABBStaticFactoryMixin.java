@@ -56,7 +56,7 @@ public abstract class AABBStaticFactoryMixin {
             AABB originalBox = cir.getReturnValue();
             
             // Transform the AABB to an OrientedBoundingBox
-            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(originalBox, gravityDirectionVec, entity);
+            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(originalBox, gravityDirectionVec);
             
             // Return the transformed box
             cir.setReturnValue(obb);
@@ -102,7 +102,7 @@ public abstract class AABBStaticFactoryMixin {
             AABB originalBox = cir.getReturnValue();
             
             // Transform the AABB to an OrientedBoundingBox
-            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(originalBox, gravityDirectionVec, entity);
+            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(originalBox, gravityDirectionVec);
             
             // Return the transformed box
             cir.setReturnValue(obb);
@@ -148,7 +148,7 @@ public abstract class AABBStaticFactoryMixin {
             AABB originalBox = cir.getReturnValue();
             
             // Transform the AABB to an OrientedBoundingBox
-            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(originalBox, gravityDirectionVec, entity);
+            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(originalBox, gravityDirectionVec);
             
             // Return the transformed box
             cir.setReturnValue(obb);

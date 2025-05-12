@@ -86,7 +86,7 @@ public abstract class AABBConstructorMixin {
         try {
             // Transform the AABB to an OrientedBoundingBox
             AABB thisBox = (AABB)(Object)this;
-            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(thisBox, gravityDirectionVec, entity);
+            OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(thisBox, gravityDirectionVec);
             
             // We can't replace the current object, so we'll just have to rely on other mixins to handle operations on it
         } finally {
