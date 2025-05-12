@@ -2,11 +2,14 @@ package gravity_changer.mixin.client;
 
 import gravity_changer.api.GravityChangerAPI;
 import gravity_changer.util.RotationUtil;
+import net.minecraft.client.KeyboardHandler;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.player.KeyboardInput;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.entity.MoverType;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import com.mojang.authlib.GameProfile;
@@ -35,8 +38,7 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
             )
     )
     private AABB redirect_wouldCollideAt_new_0(double x1, double y1, double z1, double x2, double y2, double z2, BlockPos pos) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(this);
+        // Get Vec3 gravity directions
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this);
 
         // Check if we're using the default gravity direction
@@ -48,30 +50,20 @@ public abstract class ClientPlayerEntityMixin extends AbstractClientPlayer {
         AABB playerBox = this.getBoundingBox();
         AABB posBox = new AABB(pos);
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(this)) {
-            Vec3 playerMask = RotationUtil.maskPlayerToWorld(0.0D, 1.0D, 0.0D, gravityDirection);
-            Vec3 posMask = RotationUtil.maskPlayerToWorld(1.0D, 0.0D, 1.0D, gravityDirection);
 
-            return new AABB(
-                    playerMask.multiply(playerBox.minX, playerBox.minY, playerBox.minZ).add(posMask.multiply(posBox.minX, posBox.minY, posBox.minZ)),
-                    playerMask.multiply(playerBox.maxX, playerBox.maxY, playerBox.maxZ).add(posMask.multiply(posBox.maxX, posBox.maxY, posBox.maxZ))
-            );
-        } else {
-            // For arbitrary directions, we need a different approach
-            // Since maskPlayerToWorld is for cardinal directions only
-            // We'll use the bounding box transformation methods
+        // For arbitrary directions, we need a different approach
+        // Since maskPlayerToWorld is for cardinal directions only
+        // We'll use the bounding box transformation methods
 
-            // Transform player box to world space
-            Vec3 playerMin = RotationUtil.vecPlayerToWorldVec(new Vec3(playerBox.minX, playerBox.minY, playerBox.minZ), gravityDirectionVec);
-            Vec3 playerMax = RotationUtil.vecPlayerToWorldVec(new Vec3(playerBox.maxX, playerBox.maxY, playerBox.maxZ), gravityDirectionVec);
+        // Transform player box to world space
+        Vec3 playerMin = RotationUtil.vecPlayerToWorldVec(new Vec3(playerBox.minX, playerBox.minY, playerBox.minZ), gravityDirectionVec);
+        Vec3 playerMax = RotationUtil.vecPlayerToWorldVec(new Vec3(playerBox.maxX, playerBox.maxY, playerBox.maxZ), gravityDirectionVec);
 
-            // Combine with position box
-            return new AABB(
-                    playerMin.x + posBox.minX, playerMin.y + posBox.minY, playerMin.z + posBox.minZ,
-                    playerMax.x + posBox.maxX, playerMax.y + posBox.maxY, playerMax.z + posBox.maxZ
-            );
-        }
+        // Combine with position box
+        return new AABB(
+                playerMin.x + posBox.minX, playerMin.y + posBox.minY, playerMin.z + posBox.minZ,
+                playerMax.x + posBox.maxX, playerMax.y + posBox.maxY, playerMax.z + posBox.maxZ
+        );
     }
 
     @Inject(

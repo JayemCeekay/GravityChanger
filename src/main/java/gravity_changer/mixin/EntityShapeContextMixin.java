@@ -2,11 +2,18 @@ package gravity_changer.mixin;
 
 
 import gravity_changer.api.GravityChangerAPI;
+import gravity_changer.collision.OrientedBoundingBox;
+import gravity_changer.collision.OrientedBoundingBoxTransformer;
+import gravity_changer.util.GravityCollisionUtil;
 import gravity_changer.util.RotationUtil;
+import gravity_changer.util.Rotor;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.EntityCollisionContext;
 import net.minecraft.world.phys.shapes.VoxelShape;
 import org.spongepowered.asm.mixin.Final;
@@ -27,6 +34,7 @@ public abstract class EntityShapeContextMixin {
     @Final
     private double entityBottom;
 
+    // inside redirect_init_getY_0
     @Redirect(
             method = "<init>(Lnet/minecraft/world/entity/Entity;)V",
             at = @At(
@@ -36,8 +44,8 @@ public abstract class EntityShapeContextMixin {
             )
     )
     private static double redirect_init_getY_0(Entity entity) {
-        // Get both Direction and Vec3 gravity directions
-        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
+        // Get gravity direction as Vec3
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
         boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
@@ -45,9 +53,9 @@ public abstract class EntityShapeContextMixin {
             return entity.getY();
         }
 
-
-        // For arbitrary directions, use the Vec3-based method
-        return RotationUtil.boxWorldToPlayerVec(entity.getBoundingBox(), gravityDirectionVec).minY;
+        // Use the dynamic system with entity context for better accuracy
+        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(entity.getBoundingBox(), gravityDirectionVec, entity);
+        return obb.getLocalBox().minY;
 
     }
 
@@ -59,16 +67,22 @@ public abstract class EntityShapeContextMixin {
     private void inject_isAbove(VoxelShape shape, BlockPos pos, boolean defaultValue, CallbackInfoReturnable<Boolean> cir) {
         if (this.entity == null) return;
 
-        // Get Vec3 gravity directions
-        net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this.entity);
+        // Get gravity direction as Vec3
+        Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this.entity);
 
         // Check if we're using the default gravity direction
         boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
         if (isDefaultGravity) return;
 
-
         // For arbitrary directions, use the Vec3-based method
-        cir.setReturnValue(this.entityBottom > RotationUtil.boxWorldToPlayerVec(new AABB(pos), gravityDirectionVec).minY +
-                RotationUtil.boxWorldToPlayerVec(shape.bounds().inflate(-9.999999747378752E-6D), gravityDirectionVec).maxX);
+        AABB posBox = new AABB(pos);
+        AABB shapeBox = shape.bounds().inflate(-9.999999747378752E-6D);
+
+        // Use the dynamic system with entity context for better accuracy
+        OrientedBoundingBox posBoundingBox = OrientedBoundingBoxTransformer.transformToOBB(posBox, gravityDirectionVec, this.entity);
+        OrientedBoundingBox shapeBoundingBox = OrientedBoundingBoxTransformer.transformToOBB(shapeBox, gravityDirectionVec, this.entity);
+
+        cir.setReturnValue(this.entityBottom > posBoundingBox.getLocalBox().minY + shapeBoundingBox.getLocalBox().maxY);
+
     }
 }

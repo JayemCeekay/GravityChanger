@@ -6,9 +6,9 @@ import dev.onyxstudios.cca.api.v3.component.sync.AutoSyncedComponent;
 import dev.onyxstudios.cca.api.v3.component.tick.CommonTickingComponent;
 import gravity_changer.api.GravityChangerAPI;
 import gravity_changer.api.RotationParameters;
-import gravity_changer.mixin.EntityAccessor;
+import gravity_changer.mixin.entity.EntityAccessor;
 import gravity_changer.util.GCUtil;
-import gravity_changer.util.QuaternionUtil;
+import gravity_changer.util.Rotor;
 import gravity_changer.util.RotationUtil;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -29,8 +29,6 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Quaternionf;
-import org.joml.Vector3f;
 import org.slf4j.Logger;
 
 /**
@@ -377,91 +375,7 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
         }
     }
 
-    public void applyGravityDirectionChange(
-        Direction oldGravity, Direction newGravity,
-        RotationParameters rotationParameters, boolean isInitialization
-    ) {
-        if (!canChangeGravity()) {
-            return;
-        }
 
-        // update bounding box
-        entity.setBoundingBox(((EntityAccessor) entity).gc_makeBoundingBox());
-
-        // A weird thing is that,
-        // using `entity.setPos(entity.position())` to a painting on client side
-        // make the painting move wrongly, because Painting overrides `trackingPosition()`.
-        // No entity other than Painting overrides that method.
-        // It seems to be legacy code from early versions of Minecraft.
-
-        if (isInitialization) {
-            return;
-        }
-
-        entity.fallDistance = 0;
-
-        long timeMs = entity.level().getGameTime() * 50;
-
-        Vec3 relativeRotationCenter = getLocalRotationCenter(
-            entity, oldGravity, newGravity, rotationParameters
-        );
-        Vec3 oldPos = entity.position();
-        Vec3 oldLastTickPos = new Vec3(entity.xOld, entity.yOld, entity.zOld);
-        Vec3 rotationCenter = oldPos.add(RotationUtil.vecPlayerToWorld(relativeRotationCenter, oldGravity));
-        Vec3 newPos = rotationCenter.subtract(RotationUtil.vecPlayerToWorld(relativeRotationCenter, newGravity));
-        Vec3 posTranslation = newPos.subtract(oldPos);
-        Vec3 newLastTickPos = oldLastTickPos.add(posTranslation);
-
-        entity.setPos(newPos);
-        entity.xo = newLastTickPos.x;
-        entity.yo = newLastTickPos.y;
-        entity.zo = newLastTickPos.z;
-        entity.xOld = newLastTickPos.x;
-        entity.yOld = newLastTickPos.y;
-        entity.zOld = newLastTickPos.z;
-
-        adjustEntityPosition(oldGravity, newGravity, entity.getBoundingBox());
-
-        if (entity.level().isClientSide()) {
-            Validate.notNull(animation, "gravity animation is null");
-
-            int rotationTimeMS = rotationParameters.rotationTimeMS();
-
-            animation.startRotationAnimation(
-                newGravity, oldGravity,
-                rotationTimeMS,
-                entity, timeMs, rotationParameters.rotateView(),
-                relativeRotationCenter
-            );
-        }
-
-        Vec3 realWorldVelocity = getRealWorldVelocity(entity, oldGravity);
-        if (rotationParameters.rotateVelocity()) {
-            // Rotate velocity with gravity, this will cause things to appear to take a sharp turn
-            Vector3f worldSpaceVec = realWorldVelocity.toVector3f();
-            worldSpaceVec.rotate(RotationUtil.getRotationBetween(oldGravity, newGravity));
-            entity.setDeltaMovement(RotationUtil.vecWorldToPlayer(new Vec3(worldSpaceVec), newGravity));
-        }
-        else {
-            // Velocity will be conserved relative to the world, will result in more natural motion
-            entity.setDeltaMovement(RotationUtil.vecWorldToPlayer(realWorldVelocity, newGravity));
-        }
-    }
-
-    // getVelocity() does not return the actual velocity. It returns the velocity plus acceleration.
-    // Even if the entity is standing still, getVelocity() will still give a downwards vector.
-    // The real velocity is this tick position subtract last tick position
-    private static Vec3 getRealWorldVelocity(Entity entity, Direction prevGravityDirection) {
-        if (entity.isControlledByLocalInstance()) {
-            return new Vec3(
-                entity.getX() - entity.xo,
-                entity.getY() - entity.yo,
-                entity.getZ() - entity.zo
-            );
-        }
-
-        return RotationUtil.vecPlayerToWorld(entity.getDeltaMovement(), prevGravityDirection);
-    }
 
     /**
      * Vec3-based version of getRealWorldVelocity for arbitrary gravity directions
@@ -775,22 +689,6 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
     }
 
     /**
-     * Get whether Vec3-based gravity is being used
-     * Always returns true as we only support Vec3-based gravity now
-     */
-    public boolean isUsingVec3Gravity() {
-        return true;
-    }
-
-    /**
-     * Set whether to use Vec3-based gravity
-     * Does nothing as we only support Vec3-based gravity now
-     */
-    public void setUseVec3Gravity(boolean useVec3) {
-        // No-op, we always use Vec3-based gravity now
-    }
-
-    /**
      * Reset gravity to default (DOWN direction)
      */
     public void reset() {
@@ -882,11 +780,9 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
         Vec3 realWorldVelocity = getRealWorldVelocityVec(entity, oldGravity);
         if (rotationParameters.rotateVelocity()) {
             // Rotate velocity with gravity, this will cause things to appear to take a sharp turn
-            // Use QuaternionUtil.rotate instead of directly using Vector3f.rotate
-            Vec3 rotatedVelocity = QuaternionUtil.rotate(
-                realWorldVelocity, 
-                RotationUtil.getRotationBetweenVec(oldGravity, newGravity)
-            );
+            // Use Rotor for rotation
+            Rotor rotor = RotationUtil.getRotorBetweenVec(oldGravity, newGravity);
+            Vec3 rotatedVelocity = rotor.rotate(realWorldVelocity);
             entity.setDeltaMovement(RotationUtil.vecWorldToPlayerVec(rotatedVelocity, newGravity));
         }
         else {

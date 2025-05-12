@@ -130,37 +130,7 @@ public abstract class RotationUtil {
         return maskPlayerToWorld(vec3d.x, vec3d.y, vec3d.z, gravityDirection);
     }
 
-    public static AABB boxWorldToPlayer(AABB box, Direction gravityDirection) {
-        return new AABB(
-            RotationUtil.vecWorldToPlayer(box.minX, box.minY, box.minZ, gravityDirection),
-            RotationUtil.vecWorldToPlayer(box.maxX, box.maxY, box.maxZ, gravityDirection)
-        );
-    }
 
-    public static AABB boxPlayerToWorld(AABB box, Direction gravityDirection) {
-        return new AABB(
-            RotationUtil.vecPlayerToWorld(box.minX, box.minY, box.minZ, gravityDirection),
-            RotationUtil.vecPlayerToWorld(box.maxX, box.maxY, box.maxZ, gravityDirection)
-        );
-    }
-
-    public static Vec2 rotWorldToPlayer(float yaw, float pitch, Direction gravityDirection) {
-        Vec3 vec3d = RotationUtil.vecWorldToPlayer(rotToVec(yaw, pitch), gravityDirection);
-        return vecToRot(vec3d.x, vec3d.y, vec3d.z);
-    }
-
-    public static Vec2 rotWorldToPlayer(Vec2 vec2f, Direction gravityDirection) {
-        return rotWorldToPlayer(vec2f.x, vec2f.y, gravityDirection);
-    }
-
-    public static Vec2 rotPlayerToWorld(float yaw, float pitch, Direction gravityDirection) {
-        Vec3 vec3d = RotationUtil.vecPlayerToWorld(rotToVec(yaw, pitch), gravityDirection);
-        return vecToRot(vec3d.x, vec3d.y, vec3d.z);
-    }
-
-    public static Vec2 rotPlayerToWorld(Vec2 vec2f, Direction gravityDirection) {
-        return rotPlayerToWorld(vec2f.x, vec2f.y, gravityDirection);
-    }
 
     public static Vec3 rotToVec(float yaw, float pitch) {
         double radPitch = pitch * 0.017453292;
@@ -215,34 +185,56 @@ public abstract class RotationUtil {
     }
 
     private static final Quaternionf[] ENTITY_ROTATION_QUATERNIONS = new Quaternionf[6];
+    private static final Rotor[] ENTITY_ROTATION_ROTORS = new Rotor[6];
 
     static {
         for (int i = 0; i < 6; i++) {
             ENTITY_ROTATION_QUATERNIONS[i] = new Quaternionf().set(WORLD_ROTATION_QUATERNIONS[i]).conjugate();
+            // Initialize the corresponding rotors
+            ENTITY_ROTATION_ROTORS[i] = Rotor.fromQuaternion(ENTITY_ROTATION_QUATERNIONS[i]);
         }
     }
 
     /**
      * Note: don't modify the quaternion object in-place
+     * For backward compatibility
      */
     public static Quaternionf getCameraRotationQuaternion(Direction gravityDirection) {
         return ENTITY_ROTATION_QUATERNIONS[gravityDirection.get3DDataValue()];
     }
 
     /**
+     * Get the camera rotation rotor for a cardinal direction
+     * Note: don't modify the rotor object in-place
+     */
+    public static Rotor getCameraRotationRotor(Direction gravityDirection) {
+        return ENTITY_ROTATION_ROTORS[gravityDirection.get3DDataValue()];
+    }
+
+    /**
      * Get the camera rotation quaternion for an arbitrary gravity direction
      * Note: don't modify the quaternion object in-place
+     * For backward compatibility
      */
     public static Quaternionf getCameraRotationQuaternionVec(Vec3 gravityDirection) {
+        // Convert the rotor to quaternion for backward compatibility
+        return getCameraRotationRotorVec(gravityDirection).toQuaternion();
+    }
+
+    /**
+     * Get the camera rotation rotor for an arbitrary gravity direction
+     * Note: don't modify the rotor object in-place
+     */
+    public static Rotor getCameraRotationRotorVec(Vec3 gravityDirection) {
         // Normalize the gravity direction
         gravityDirection = gravityDirection.normalize();
 
-        // Create a quaternion that rotates from the gravity direction to DOWN
+        // Create a rotor that rotates from the gravity direction to DOWN
         Vec3 downVector = new Vec3(0, -1, 0); // Standard DOWN direction
-        Quaternionf rotation = getRotationBetweenVec(gravityDirection, downVector);
+        Rotor rotation = getRotorBetweenVec(gravityDirection, downVector);
 
-        // Return the conjugate for camera rotation
-        return new Quaternionf(rotation);
+        // Return the inverse for camera rotation
+        return rotation;
     }
 
     /**
@@ -261,6 +253,15 @@ public abstract class RotationUtil {
     }
 
     /**
+     * Get the rotation rotor between two cardinal directions
+     */
+    public static Rotor getRotorBetween(Direction d1, Direction d2) {
+        Vec3 start = new Vec3(d1.step());
+        Vec3 end = new Vec3(d2.step());
+        return Rotor.from(start, end);
+    }
+
+    /**
      * Get the rotation quaternion between two arbitrary gravity directions
      */
     public static Quaternionf getRotationBetweenVec(Vec3 v1, Vec3 v2) {
@@ -268,8 +269,22 @@ public abstract class RotationUtil {
         return QuaternionUtil.getRotationBetween(v1, v2);
     }
 
+    /**
+     * Get the rotation rotor between two arbitrary gravity directions
+     */
+    public static Rotor getRotorBetweenVec(Vec3 v1, Vec3 v2) {
+        return Rotor.from(v1, v2);
+    }
+
     public static Quaternionf interpolate(Quaternionf startGravityRotation, Quaternionf endGravityRotation, float progress) {
         return new Quaternionf().set(startGravityRotation).slerp(endGravityRotation, progress);
+    }
+
+    /**
+     * Interpolate between two rotors using spherical linear interpolation
+     */
+    public static Rotor interpolateRotors(Rotor startRotor, Rotor endRotor, float progress) {
+        return Rotor.slerp(startRotor, endRotor, progress);
     }
 
     /**
@@ -313,12 +328,12 @@ public abstract class RotationUtil {
         // Normalize the gravity direction
         gravityDirection = gravityDirection.normalize();
 
-        // Create a quaternion that rotates from DOWN to the gravity direction
+        // Create a rotor that rotates from DOWN to the gravity direction
         Vec3 downVector = new Vec3(0, -1, 0); // Standard DOWN direction
-        Quaternionf rotation = getRotationBetweenVec(downVector, gravityDirection);
+        Rotor rotor = getRotorBetweenVec(downVector, gravityDirection);
 
         // Apply the rotation to the vector
-        return QuaternionUtil.rotate(vec, rotation);
+        return rotor.rotate(vec);
     }
 
     /**
@@ -328,33 +343,29 @@ public abstract class RotationUtil {
         // Normalize the gravity direction
         gravityDirection = gravityDirection.normalize();
 
-        // Create a quaternion that rotates from the gravity direction to DOWN
+        // Create a rotor that rotates from the gravity direction to DOWN
         Vec3 downVector = new Vec3(0, -1, 0); // Standard DOWN direction
-        Quaternionf rotation = getRotationBetweenVec(gravityDirection, downVector);
+        Rotor rotor = getRotorBetweenVec(gravityDirection, downVector);
 
         // Apply the rotation to the vector
-        return QuaternionUtil.rotate(vec, rotation);
+        return rotor.rotate(vec);
     }
 
     /**
      * Convert a bounding box from world space to player space using an arbitrary gravity direction
      */
-    public static AABB boxWorldToPlayerVec(AABB box, Vec3 gravityDirection) {
-        return new AABB(
-            vecWorldToPlayerVec(new Vec3(box.minX, box.minY, box.minZ), gravityDirection),
-            vecWorldToPlayerVec(new Vec3(box.maxX, box.maxY, box.maxZ), gravityDirection)
-        );
+    public static AABB boxWorldToPlayerVec(AABB box, Vec3 gravityVec) {
+        return Rotor.inverseRotateBoxWithRotor(box, gravityVec);
     }
+
 
     /**
      * Convert a bounding box from player space to world space using an arbitrary gravity direction
      */
-    public static AABB boxPlayerToWorldVec(AABB box, Vec3 gravityDirection) {
-        return new AABB(
-            vecPlayerToWorldVec(new Vec3(box.minX, box.minY, box.minZ), gravityDirection),
-            vecPlayerToWorldVec(new Vec3(box.maxX, box.maxY, box.maxZ), gravityDirection)
-        );
+    public static AABB boxPlayerToWorldVec(AABB box, Vec3 gravityVec) {
+        return Rotor.rotateBoxWithRotor(box, gravityVec);
     }
+
 
     /**
      * Convert rotation from world space to player space using an arbitrary gravity direction
@@ -384,5 +395,10 @@ public abstract class RotationUtil {
      */
     public static Vec2 rotPlayerToWorldVec(Vec2 vec2f, Vec3 gravityDirection) {
         return rotPlayerToWorldVec(vec2f.x, vec2f.y, gravityDirection);
+    }
+
+
+    public static Vec3 vecPlayerToWorldVec(double v, double v1, double v2, Vec3 gravityDirection) {
+        return vecPlayerToWorldVec(new Vec3(v, v1, v2), gravityDirection);
     }
 }

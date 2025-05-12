@@ -1,4 +1,4 @@
-package gravity_changer.mixin;
+/*package gravity_changer.mixin;
 
 
 import gravity_changer.api.GravityChangerAPI;
@@ -6,6 +6,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -21,7 +22,7 @@ public abstract class EndermanEntityMixin {
         )
     )
     private double redirect_isPlayerStaring_getEyeY_0(Player playerEntity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(playerEntity);
         if (gravityDirection == Direction.DOWN) {
             return playerEntity.getEyeY();
         }
@@ -114,3 +115,4 @@ public abstract class EndermanEntityMixin {
         return entity.getEyePosition().z;
     }
 }
+*/

@@ -2,26 +2,47 @@ package gravity_changer.mixin;
 
 
 import gravity_changer.api.GravityChangerAPI;
+import gravity_changer.collision.CollisionContext;
+import gravity_changer.collision.OrientedBoundingBox;
+import gravity_changer.collision.OrientedBoundingBoxTransformer;
 import gravity_changer.util.RotationUtil;
+import gravity_changer.util.Rotor;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.util.Mth;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.*;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
+
+import java.util.UUID;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends Entity {
@@ -34,10 +55,36 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow
     public abstract float getViewYRot(float tickDelta);
 
+    @Shadow
+    protected abstract void jumpFromGround();
+    @Shadow
+    protected abstract float getJumpPower();
+
+    @Shadow
+    protected boolean jumping;
+
+    @Shadow
+    public float yya;  // Vertical movement input
+
+    @Shadow
+    public float xxa;  // Horizontal movement input (strafe)
+
+    @Shadow
+    public float zza;  // Forward/backward movement input
+
+    @Shadow public abstract boolean hasEffect(MobEffect effect);
+
+    @Shadow public abstract @Nullable MobEffectInstance getEffect(MobEffect effect);
+
+    @Shadow protected abstract void playBlockFallSound();
+
+    // UUID for gravity-specific movement modifiers
+    private static final UUID GRAVITY_MOVEMENT_MODIFIER_UUID = UUID.fromString("91AEAA56-376B-4498-935B-2F7F68070635");
 
     public LivingEntityMixin(EntityType<?> type, Level world) {
         super(type, world);
     }
+
 
     @Redirect(
             method = "Lnet/minecraft/world/entity/LivingEntity;travel(Lnet/minecraft/world/phys/Vec3;)V",
@@ -71,7 +118,7 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double redirect_travel_getY_1(LivingEntity livingEntity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
+
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(livingEntity);
 
         // Check if we're using the default gravity direction
@@ -80,13 +127,10 @@ public abstract class LivingEntityMixin extends Entity {
             return livingEntity.getY();
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(livingEntity)) {
-            return RotationUtil.vecWorldToPlayer(livingEntity.position(), gravityDirection).y;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(livingEntity.position(), gravityDirectionVec).y;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(livingEntity.position(), gravityDirectionVec).y;
+
     }
 
     @Redirect(
@@ -98,8 +142,7 @@ public abstract class LivingEntityMixin extends Entity {
             )
     )
     private double redirect_travel_getY_2(LivingEntity livingEntity) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
+        // Get Vec3 gravity directions
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(livingEntity);
 
         // Check if we're using the default gravity direction
@@ -108,13 +151,10 @@ public abstract class LivingEntityMixin extends Entity {
             return livingEntity.getY();
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(livingEntity)) {
-            return RotationUtil.vecWorldToPlayer(livingEntity.position(), gravityDirection).y;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(livingEntity.position(), gravityDirectionVec).y;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(livingEntity.position(), gravityDirectionVec).y;
+
     }
 
     @Redirect(
@@ -127,7 +167,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double redirect_travel_getY_3(LivingEntity livingEntity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(livingEntity);
 
         // Check if we're using the default gravity direction
@@ -136,13 +175,10 @@ public abstract class LivingEntityMixin extends Entity {
             return livingEntity.getY();
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(livingEntity)) {
-            return RotationUtil.vecWorldToPlayer(livingEntity.position(), gravityDirection).y;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(livingEntity.position(), gravityDirectionVec).y;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(livingEntity.position(), gravityDirectionVec).y;
+
     }
 
     @ModifyVariable(
@@ -178,7 +214,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private BlockPos modify_playBlockFallSound_getBlockState_0(BlockPos blockPos) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -187,13 +222,10 @@ public abstract class LivingEntityMixin extends Entity {
             return blockPos;
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            return BlockPos.containing(this.position().add(RotationUtil.vecPlayerToWorld(0, -0.20000000298023224D, 0, gravityDirection)));
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return BlockPos.containing(this.position().add(RotationUtil.vecPlayerToWorldVec(new Vec3(0, -0.20000000298023224D, 0), gravityDirectionVec)));
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return BlockPos.containing(this.position().add(RotationUtil.vecPlayerToWorldVec(new Vec3(0, -0.20000000298023224D, 0), gravityDirectionVec)));
+
     }
 
     @Redirect(
@@ -206,7 +238,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private Vec3 redirect_canSee_new_0(double x, double y, double z) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -230,7 +261,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private Vec3 redirect_canSee_new_1(double x, double y, double z, Entity entity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
@@ -251,7 +281,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private void inject_getBoundingBox(Pose pose, CallbackInfoReturnable<AABB> cir) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
         // Check if we're using the default gravity direction
         boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
@@ -260,13 +289,11 @@ public abstract class LivingEntityMixin extends Entity {
         }
 
         AABB box = cir.getReturnValue();
-        if (gravityDirection.getAxisDirection() == Direction.AxisDirection.POSITIVE || gravityDirectionVec.y >= 0) {
-            box = box.move(0.0D, -1.0E-6D, 0.0D);
-        }
 
-        // For arbitrary directions, use the Vec3-based method
-        cir.setReturnValue(RotationUtil.boxPlayerToWorldVec(box, gravityDirectionVec));
+        // Use OrientedBoundingBoxTransformer to transform the box
+        OrientedBoundingBox obb = OrientedBoundingBoxTransformer.transformToOBB(box, gravityDirectionVec);
 
+        cir.setReturnValue(obb);
     }
 
 //    @Inject(
@@ -305,7 +332,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double wrapOperation_tick_getX_0(LivingEntity livingEntity, Operation<Double> original) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(livingEntity);
 
         // Check if we're using the default gravity direction
@@ -321,13 +347,10 @@ public abstract class LivingEntityMixin extends Entity {
                 livingEntity.getZ() - livingEntity.zo
         );
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(livingEntity)) {
-            return RotationUtil.vecWorldToPlayer(deltaMovement, gravityDirection).x + livingEntity.xo;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(deltaMovement, gravityDirectionVec).x + livingEntity.xo;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(deltaMovement, gravityDirectionVec).x + livingEntity.xo;
+
     }
 
     @WrapOperation(
@@ -340,7 +363,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double wrapOperation_tick_getZ_0(LivingEntity livingEntity, Operation<Double> original) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(livingEntity);
 
         // Check if we're using the default gravity direction
@@ -356,13 +378,10 @@ public abstract class LivingEntityMixin extends Entity {
                 original.call(livingEntity) - livingEntity.zo
         );
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(livingEntity)) {
-            return RotationUtil.vecWorldToPlayer(deltaMovement, gravityDirection).z + livingEntity.zo;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(deltaMovement, gravityDirectionVec).z + livingEntity.zo;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(deltaMovement, gravityDirectionVec).z + livingEntity.zo;
+
     }
 
     @Redirect(
@@ -375,14 +394,12 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double redirect_damage_getX_0(Entity attacker) {
         // Get both Direction and Vec3 gravity directions for this entity
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if this entity is using the default gravity direction
         boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
         if (isDefaultGravity) {
             // Get attacker's gravity direction
-            Direction attackerGravityDirection = GravityChangerAPI.getGravityDirection(attacker);
             Vec3 attackerGravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(attacker);
 
             // Check if attacker is using the default gravity direction
@@ -394,13 +411,10 @@ public abstract class LivingEntityMixin extends Entity {
             }
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            return RotationUtil.vecWorldToPlayer(attacker.getEyePosition(), gravityDirection).x;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(attacker.getEyePosition(), gravityDirectionVec).x;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(attacker.getEyePosition(), gravityDirectionVec).x;
+
     }
 
     @Redirect(
@@ -413,14 +427,12 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double redirect_damage_getZ_0(Entity attacker) {
         // Get both Direction and Vec3 gravity directions for this entity
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if this entity is using the default gravity direction
         boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
         if (isDefaultGravity) {
             // Get attacker's gravity direction
-            Direction attackerGravityDirection = GravityChangerAPI.getGravityDirection(attacker);
             Vec3 attackerGravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(attacker);
 
             // Check if attacker is using the default gravity direction
@@ -432,13 +444,10 @@ public abstract class LivingEntityMixin extends Entity {
             }
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            return RotationUtil.vecWorldToPlayer(attacker.getEyePosition(), gravityDirection).z;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(attacker.getEyePosition(), gravityDirectionVec).z;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(attacker.getEyePosition(), gravityDirectionVec).z;
+
     }
 
     @Redirect(
@@ -450,12 +459,12 @@ public abstract class LivingEntityMixin extends Entity {
             )
     )
     private double redirect_damage_getX_0(LivingEntity target) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(target);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return target.getX();
         }
 
-        return RotationUtil.vecWorldToPlayer(target.position(), gravityDirection).x;
+        return RotationUtil.vecWorldToPlayerVec(target.position(), gravityDirection).x;
     }
 
     @Redirect(
@@ -467,12 +476,12 @@ public abstract class LivingEntityMixin extends Entity {
             )
     )
     private double redirect_damage_getZ_0(LivingEntity target) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(target);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return target.getZ();
         }
 
-        return RotationUtil.vecWorldToPlayer(target.position(), gravityDirection).z;
+        return RotationUtil.vecWorldToPlayerVec(target.position(), gravityDirection).z;
     }
 
     @Redirect(
@@ -485,7 +494,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double redirect_knockback_getX_0(LivingEntity target) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(target);
 
         // Check if we're using the default gravity direction
@@ -494,13 +502,10 @@ public abstract class LivingEntityMixin extends Entity {
             return target.getX();
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(target)) {
-            return RotationUtil.vecWorldToPlayer(target.position(), gravityDirection).x;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(target.position(), gravityDirectionVec).x;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(target.position(), gravityDirectionVec).x;
+
     }
 
 
@@ -514,7 +519,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double redirect_knockback_getZ_0(LivingEntity target) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(target);
 
         // Check if we're using the default gravity direction
@@ -523,13 +527,10 @@ public abstract class LivingEntityMixin extends Entity {
             return target.getZ();
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(target)) {
-            return RotationUtil.vecWorldToPlayer(target.position(), gravityDirection).z;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(target.position(), gravityDirectionVec).z;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(target.position(), gravityDirectionVec).z;
+
     }
 
     @Redirect(
@@ -542,14 +543,12 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double redirect_knockback_getX_1(LivingEntity attacker, LivingEntity target) {
         // Get both Direction and Vec3 gravity directions for target
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(target);
 
         // Check if target is using the default gravity direction
         boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
         if (isDefaultGravity) {
             // Get attacker's gravity direction
-            Direction attackerGravityDirection = GravityChangerAPI.getGravityDirection(attacker);
             Vec3 attackerGravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(attacker);
 
             // Check if attacker is using the default gravity direction
@@ -561,13 +560,9 @@ public abstract class LivingEntityMixin extends Entity {
             }
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(target)) {
-            return RotationUtil.vecWorldToPlayer(attacker.getEyePosition(), gravityDirection).x;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(attacker.getEyePosition(), gravityDirectionVec).x;
-        }
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(attacker.getEyePosition(), gravityDirectionVec).x;
+
     }
 
     @Redirect(
@@ -580,14 +575,12 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private double redirect_knockback_getZ_1(LivingEntity attacker, LivingEntity target) {
         // Get both Direction and Vec3 gravity directions for target
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(target);
 
         // Check if target is using the default gravity direction
         boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
         if (isDefaultGravity) {
             // Get attacker's gravity direction
-            Direction attackerGravityDirection = GravityChangerAPI.getGravityDirection(attacker);
             Vec3 attackerGravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(attacker);
 
             // Check if attacker is using the default gravity direction
@@ -599,13 +592,10 @@ public abstract class LivingEntityMixin extends Entity {
             }
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(target)) {
-            return RotationUtil.vecWorldToPlayer(attacker.getEyePosition(), gravityDirection).z;
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(attacker.getEyePosition(), gravityDirectionVec).z;
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(attacker.getEyePosition(), gravityDirectionVec).z;
+
     }
 
     @Redirect(
@@ -618,7 +608,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private BlockPos redirect_baseTick_new_0(double x, double y, double z) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -642,7 +631,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private Vec3 wrapOperation_spawnItemParticles_add_0(Vec3 vec3d, double x, double y, double z, Operation<Vec3> original) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -652,13 +640,10 @@ public abstract class LivingEntityMixin extends Entity {
         }
 
         Vec3 rotated;
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            rotated = RotationUtil.vecPlayerToWorld(vec3d, gravityDirection);
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            rotated = RotationUtil.vecPlayerToWorldVec(vec3d, gravityDirectionVec);
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        rotated = RotationUtil.vecPlayerToWorldVec(vec3d, gravityDirectionVec);
+
 
         return original.call(this.getEyePosition(), rotated.x, rotated.y, rotated.z);
     }
@@ -674,7 +659,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private Vec3 modify_spawnItemParticles_Vec3d_0(Vec3 vec3d) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -683,13 +667,9 @@ public abstract class LivingEntityMixin extends Entity {
             return vec3d;
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            return RotationUtil.vecPlayerToWorld(vec3d, gravityDirection);
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecPlayerToWorldVec(vec3d, gravityDirectionVec);
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecPlayerToWorldVec(vec3d, gravityDirectionVec);
     }
 
     @ModifyArgs(
@@ -701,7 +681,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private void modify_tickStatusEffects_addParticle_0(Args args) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -711,13 +690,9 @@ public abstract class LivingEntityMixin extends Entity {
         Vec3 particlePos = new Vec3(args.get(1), args.get(2), args.get(3));
         Vec3 vec3d;
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            vec3d = this.position().subtract(RotationUtil.vecPlayerToWorld(this.position().subtract(particlePos), gravityDirection));
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            vec3d = this.position().subtract(RotationUtil.vecPlayerToWorldVec(this.position().subtract(particlePos), gravityDirectionVec));
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        vec3d = this.position().subtract(RotationUtil.vecPlayerToWorldVec(this.position().subtract(particlePos), gravityDirectionVec));
 
         args.set(1, vec3d.x);
         args.set(2, vec3d.y);
@@ -734,7 +709,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private void modify_addDeathParticless_addParticle_0(Args args) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -744,13 +718,9 @@ public abstract class LivingEntityMixin extends Entity {
         Vec3 particlePos = new Vec3(args.get(1), args.get(2), args.get(3));
         Vec3 vec3d;
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            vec3d = this.position().subtract(RotationUtil.vecPlayerToWorld(this.position().subtract(particlePos), gravityDirection));
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            vec3d = this.position().subtract(RotationUtil.vecPlayerToWorldVec(this.position().subtract(particlePos), gravityDirectionVec));
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        vec3d = this.position().subtract(RotationUtil.vecPlayerToWorldVec(this.position().subtract(particlePos), gravityDirectionVec));
 
         args.set(1, vec3d.x);
         args.set(2, vec3d.y);
@@ -768,7 +738,6 @@ public abstract class LivingEntityMixin extends Entity {
     )
     private Vec3 modify_blockedByShield_Vec3d_1(Vec3 vec3d) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection((Entity) (Object) this);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec((Entity) (Object) this);
 
         // Check if we're using the default gravity direction
@@ -777,13 +746,10 @@ public abstract class LivingEntityMixin extends Entity {
             return vec3d;
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity((Entity) (Object) this)) {
-            return RotationUtil.vecWorldToPlayer(vec3d, gravityDirection);
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(vec3d, gravityDirectionVec);
-        }
+
+        // For arbitrary directions, use the Vec3-based method
+        return RotationUtil.vecWorldToPlayerVec(vec3d, gravityDirectionVec);
+
     }
 
     // TODO shield knockback
@@ -832,4 +798,377 @@ public abstract class LivingEntityMixin extends Entity {
     private float diminishFallDamage(float value) {
         return value * (float) Math.sqrt(GravityChangerAPI.getGravityStrength(this));
     }
+
+    /**
+     * Handles proper jumping mechanics in altered gravity directions
+     */
+    @Inject(method = "jumpFromGround", at = @At("HEAD"), cancellable = true)
+    private void injectJumpFromGround(CallbackInfo ci) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(this);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) return; // Default gravity, let vanilla handle it
+
+        // Cancel vanilla jump mechanics
+        ci.cancel();
+
+        if (!this.onGround()) return; // Only jump if on ground
+
+        // Calculate jump velocity based on gravity direction
+        float jumpPower = this.getJumpPower();
+
+        // Apply jump boost effect if present
+        if (this.hasEffect(MobEffects.JUMP)) {
+            MobEffectInstance jumpBoost = this.getEffect(MobEffects.JUMP);
+            if (jumpBoost != null) {
+                jumpPower += 0.1F * (jumpBoost.getAmplifier() + 1);
+            }
+        }
+
+        // Create jump vector in player space (up = +Y)
+        Vec3 jumpVec = new Vec3(0, jumpPower, 0);
+
+        // Transform to world space based on gravity direction
+        Vec3 worldJumpVec = RotationUtil.vecPlayerToWorldVec(jumpVec, gravityDirection);
+
+        // Apply jump velocity
+        this.setDeltaMovement(this.getDeltaMovement().add(worldJumpVec));
+
+        // Mark as having an impulse to apply
+        this.hasImpulse = true;
+
+        // Reset jumping state to avoid repeat jumps
+        this.jumping = false;
+    }
+
+    /**
+     * Modifies fall damage calculation for custom gravity directions
+     */
+    @Inject(method = "causeFallDamage", at = @At("HEAD"), cancellable = true)
+    private void injectCauseFallDamage(float fallDistance, float multiplier, DamageSource source, CallbackInfoReturnable<Boolean> cir) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(this);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) return; // Default gravity, vanilla handling
+
+        // For non-default gravity, we need to ensure the fall direction is considered correctly
+        if (fallDistance <= 3.0F) {
+            // No damage for small falls
+            cir.setReturnValue(false);
+            return;
+        }
+
+        // Setup collision context for gravity-aware collision detection
+        CollisionContext.setCurrentEntity(this);
+
+        try {
+            // Calculate adjusted fall damage - similar to vanilla but respecting gravity direction
+            float adjustedDamage = (float) Math.ceil(fallDistance - 3.0F);
+
+            // Apply damage with the correct source
+            boolean damaged = this.hurt(source, adjustedDamage * multiplier);
+
+            if (damaged) {
+                // Play fall sound based on gravity direction
+                this.playBlockFallSound();
+            }
+
+            cir.setReturnValue(damaged);
+        } finally {
+            // Always clear the collision context
+            CollisionContext.clearCurrentEntity();
+        }
+    }
+
+    /**
+     * Modifies the behavior of the travel method to handle gravity-specific movement
+     */
+    @ModifyVariable(
+            method = "travel",
+            at = @At(value = "HEAD"),
+            ordinal = 0
+    )
+    private Vec3 modifyTravelInput(Vec3 travelVector) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(this);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) return travelVector; // Default gravity
+
+        // For non-default gravity, we need to transform the input vector
+        // This ensures movement inputs correctly map to the player's local coordinate system
+        return RotationUtil.vecPlayerToWorldVec(travelVector, gravityDirection);
+    }
+
+    /**
+     * Adjusts block placement sound positioning when a living entity falls
+     */
+    @ModifyArg(
+            method = "playBlockFallSound",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/world/level/Level;getBlockState(Lnet/minecraft/core/BlockPos;)Lnet/minecraft/world/level/block/state/BlockState;"
+            ),
+            index = 0
+    )
+    private BlockPos modifyPlayBlockFallSound(BlockPos pos) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(this);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) return pos; // Default gravity
+
+        // Determine which direction is "down" for the entity and adjust the block position
+        return getBlockPosInGravityDirection(pos, gravityDirection);
+    }
+
+    /**
+     * Utility method to find the block position in the direction of gravity
+     */
+    private static BlockPos getBlockPosInGravityDirection(BlockPos pos, Vec3 gravityDirectionVec) {
+        // Normalize the gravity vector
+        Vec3 normalizedGravity = gravityDirectionVec.normalize();
+
+        // Scale by 1 block distance
+        Vec3 offset = normalizedGravity.scale(1.0);
+
+        // Convert to BlockPos (round to nearest block)
+        return BlockPos.containing(
+                pos.getX() + offset.x,
+                pos.getY() + offset.y,
+                pos.getZ() + offset.z
+        );
+    }
+
+    /* TODO */
+    /**
+     * Modifies fluid checks for swimming in altered gravity
+     */
+    /*@Inject(method = "updateSwimming", at = @At("HEAD"), cancellable = true)
+    private void modifyUpdateSwimming(CallbackInfo ci) {
+        Direction gravityDirection = GravityChangerAPI.getGravityDirection(this);
+        if (gravityDirection == Direction.DOWN) return; // Default gravity
+
+        // Set up fluid collision context
+        CollisionContext.setCurrentEntity(this);
+        CollisionContext.setInFluidCheck(true);
+
+        try {
+            // Let vanilla handle swimming state updates with our collision context
+            // This ensures fluid collision detection respects gravity direction
+        } finally {
+            // Always clean up
+            CollisionContext.setInFluidCheck(false);
+            CollisionContext.clearCurrentEntity();
+        }
+    }*/
+
+    /**
+     * Adjusts bounding box calculation for different poses in altered gravity
+     */
+    @Inject(
+            method = "getLocalBoundsForPose",
+            at = @At("RETURN"),
+            cancellable = true
+    )
+    private void modifyBoundingBoxForPose(Pose pose, CallbackInfoReturnable<AABB> cir) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(this);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) return; // Default gravity
+
+        // Get the original bounding box
+        AABB originalBox = cir.getReturnValue();
+
+        // Transform the bounding box to respect gravity direction
+        // This rotates the box so dimensions like height are oriented correctly
+        AABB transformedBox = RotationUtil.boxWorldToPlayerVec(originalBox, gravityDirection);
+
+        cir.setReturnValue(transformedBox);
+    }
+
+    /**
+     * Completely overrides the hasLineOfSight method to handle gravity changes
+     */
+    @Overwrite
+    public boolean hasLineOfSight(Entity entity) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(this);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
+            // Use vanilla implementation for default gravity
+            if (this.level().isClientSide) {
+                return this.hasLineOfSight(entity);
+            }
+            Vec3 vec3 = new Vec3(this.getX(), this.getEyeY(), this.getZ());
+            Vec3 vec32 = new Vec3(entity.getX(), entity.getEyeY(), entity.getZ());
+            return this.level().clip(new ClipContext(vec3, vec32, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, this)).getType() == HitResult.Type.MISS;
+        } else {
+            // Custom implementation for altered gravity
+            if (this.level().isClientSide) {
+                return this.hasLineOfSight(entity);
+            }
+
+            // Get eye positions in world space
+            Vec3 myEyePos = new Vec3(this.getX(), this.getEyeY(), this.getZ());
+            Vec3 targetEyePos = new Vec3(entity.getX(), entity.getEyeY(), entity.getZ());
+
+            // Transform to player space to account for gravity
+            Vec3 gravityVec = GravityChangerAPI.getGravityDirectionVec(this);
+            Vec3 myEyePosPlayerSpace = RotationUtil.vecWorldToPlayerVec(myEyePos, gravityDirection);
+            Vec3 targetEyePosPlayerSpace = RotationUtil.vecWorldToPlayerVec(targetEyePos, gravityDirection);
+
+            // Create clip context in player space
+            ClipContext context = new ClipContext(
+                    myEyePosPlayerSpace,
+                    targetEyePosPlayerSpace,
+                    ClipContext.Block.COLLIDER,
+                    ClipContext.Fluid.NONE,
+                    this
+            );
+
+            // Perform the collision check
+            HitResult result = this.level().clip(context);
+            return result.getType() == HitResult.Type.MISS;
+        }
+    }
+
+    /**
+     * Adjusts movement control for wall/ceiling movement
+     */
+    @Inject(method = "onChangedBlock", at = @At("TAIL"))
+    private void onBlockChange(BlockPos pos, CallbackInfo ci) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(this);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
+            // Remove any gravity-specific modifiers if back to normal gravity
+            clearGravityMovementModifiers();
+            return;
+        }
+
+        // For non-default gravity, adjust movement attributes for better control
+        LivingEntity entity = (LivingEntity) (Object) this;
+
+        AttributeInstance movementAttribute = entity.getAttribute(Attributes.MOVEMENT_SPEED);
+        if (movementAttribute == null) return;
+
+        // Remove existing modifier if present
+        clearGravityMovementModifiers();
+
+        // Add movement boost for wall/ceiling walking
+        // This helps counteract the awkwardness of moving on non-floor surfaces
+        double baseValue = movementAttribute.getBaseValue();
+        AttributeModifier gravityModifier = new AttributeModifier(
+                GRAVITY_MOVEMENT_MODIFIER_UUID,
+                "Gravity direction movement adjustment",
+                0.15 * baseValue, // 15% boost
+                AttributeModifier.Operation.ADDITION
+        );
+
+        movementAttribute.addTransientModifier(gravityModifier);
+    }
+
+    /**
+     * Helper method to clear gravity-specific movement modifiers
+     */
+    private void clearGravityMovementModifiers() {
+        LivingEntity entity = (LivingEntity) (Object) this;
+        AttributeInstance movementAttribute = entity.getAttribute(Attributes.MOVEMENT_SPEED);
+
+        if (movementAttribute != null) {
+            movementAttribute.removeModifier(GRAVITY_MOVEMENT_MODIFIER_UUID);
+        }
+    }
+
+    /**
+     * Handles tick logic for living entities in altered gravity
+     */
+    @Inject(method = "tick", at = @At("TAIL"))
+    private void onTick(CallbackInfo ci) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(this);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) return; // Default gravity
+
+        // For non-default gravity, ensure the entity knows it's affected by gravity
+        // This is important for various entity behaviors
+
+        LivingEntity entity = (LivingEntity) (Object) this;
+
+        // Handle automatic jumping when moving up walls in altered gravity
+        // This makes wall climbing more intuitive
+        if (this.onGround() && this.zza > 0 && !this.jumping) {
+            // Check if gravity is horizontal (any direction where Y component is near zero)
+            boolean isHorizontalGravity = Math.abs(gravityDirection.y) < 0.1 &&
+                    (Math.abs(gravityDirection.x) > 0.9 ||
+                            Math.abs(gravityDirection.z) > 0.9);
+
+            if (isHorizontalGravity) {
+                // Calculate the "up" direction relative to gravity
+                // This is the opposite of gravity
+                Vec3 upDirection = gravityDirection.reverse().normalize();
+
+                // Convert the player's view rotation to a look vector
+                float xRot = entity.getViewXRot(1.0F);
+                float yRot = entity.getViewYRot(1.0F);
+                Vec3 lookVec = new Vec3(
+                        -Math.sin(Math.toRadians(yRot)) * Math.cos(Math.toRadians(xRot)),
+                        -Math.sin(Math.toRadians(xRot)),
+                        Math.cos(Math.toRadians(yRot)) * Math.cos(Math.toRadians(xRot))
+                );
+
+                // Calculate the dot product between the look vector and the up direction
+                // If it's positive, the player is looking up relative to their gravity
+                double dotProduct = lookVec.dot(upDirection);
+
+                // If player is looking up (dot product > 0.5, which is about 30 degrees)
+                if (dotProduct > 0.5) {
+                    // Trigger a jump to help climb up walls when looking up
+                    this.jumpFromGround();
+                }
+            }
+        }
+    }
+
+    /**
+     * Handles custom entity collision for entities with different gravity directions
+     */
+    @Inject(method = "push(Lnet/minecraft/world/entity/Entity;)V", at = @At("HEAD"), cancellable = true)
+    private void onPush(Entity other, CallbackInfo ci) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(this);
+        Vec3 otherGravityDirection = GravityChangerAPI.getGravityDirectionVec(other);
+
+        // Default gravity is (0, -1, 0)
+        Vec3 defaultGravity = new Vec3(0, -1, 0);
+
+        if (gravityDirection.equals(defaultGravity) && otherGravityDirection.equals(defaultGravity)) {
+            return; // Default gravity for both entities, let vanilla handle it
+        }
+
+        // For entities with different gravity directions, we need custom collision handling
+        ci.cancel();
+
+        // Calculate the collision response in a gravity-aware manner
+        Vec3 thisPos = this.position();
+        Vec3 otherPos = other.position();
+
+        // Transform vectors to a common coordinate system
+        // Use the default gravity direction as our reference frame
+        Vec3 thisLocalPos = RotationUtil.vecWorldToPlayerVec(thisPos, gravityDirection);
+        Vec3 otherLocalPos = RotationUtil.vecWorldToPlayerVec(otherPos, otherGravityDirection);
+
+        // Convert both positions to world space with default gravity orientation
+        thisLocalPos = RotationUtil.vecPlayerToWorldVec(thisLocalPos, defaultGravity);
+        otherLocalPos = RotationUtil.vecPlayerToWorldVec(otherLocalPos, defaultGravity);
+
+        // Calculate the direction vector from other to this
+        Vec3 pushDir = thisLocalPos.subtract(otherLocalPos).normalize();
+
+        // Calculate push strength based on distance
+        double distance = thisLocalPos.distanceTo(otherLocalPos);
+        double strength = Math.max(0, 1.0 - distance / 2.0) * 0.1;
+
+        // Apply push in the appropriate coordinate systems
+        Vec3 thisPush = pushDir.scale(strength);
+        Vec3 otherPush = pushDir.scale(-strength);
+
+        // Transform back to respective entity coordinate systems
+        Vec3 thisWorldPush = RotationUtil.vecWorldToPlayerVec(thisPush, defaultGravity);
+        thisWorldPush = RotationUtil.vecPlayerToWorldVec(thisWorldPush, gravityDirection);
+
+        Vec3 otherWorldPush = RotationUtil.vecWorldToPlayerVec(otherPush, defaultGravity);
+        otherWorldPush = RotationUtil.vecPlayerToWorldVec(otherWorldPush, otherGravityDirection);
+
+        // Apply the pushes
+        this.setDeltaMovement(this.getDeltaMovement().add(thisWorldPush));
+        other.setDeltaMovement(other.getDeltaMovement().add(otherWorldPush));
+
+        // Mark that both entities have had an impulse
+        this.hasImpulse = true;
+        other.hasImpulse = true;
+    }
+
 }

@@ -139,6 +139,11 @@
 
   "text.autoconfig.gravity_changer.option.autoJumpOnGravityPlateInnerCorner": "Auto Jump On Gravity Plate Inner Corner",
 
-  "text.autoconfig.gravity_changer.option.adjustPositionAfterChangingGravity": "Adjust Position After Changing Gravity"
+  "text.autoconfig.gravity_changer.option.adjustPositionAfterChangingGravity": "Adjust Position After Changing Gravity",
+
+  "key.categories.gravity_changer": "Gravity Changer",
+  "key.gravity_changer.toggle_bounding_boxes": "Toggle Bounding Boxes",
+  "message.gravity_changer.bounding_boxes.enabled": "Bounding Box Renderer Enabled",
+  "message.gravity_changer.bounding_boxes.disabled": "Bounding Box Renderer Disabled"
 
 }

@@ -1,4 +1,4 @@
-package gravity_changer.mixin;
+/*package gravity_changer.mixin;
 
 
 import gravity_changer.api.GravityChangerAPI;
@@ -63,3 +63,4 @@ public abstract class EndermanEntity$ChasePlayerGoalMixin {
         return livingEntity.getEyePosition().z;
     }
 }
+*/

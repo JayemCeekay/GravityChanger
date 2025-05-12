@@ -8,6 +8,7 @@ import net.minecraft.world.item.Item;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -22,9 +23,9 @@ public class ItemMixin {
         )
     )
     private static float wrapOperation_raycast_getYaw(Player player, Operation<Float> original) {
-        Direction direction = GravityChangerAPI.getGravityDirection(player);
-        if (direction == Direction.DOWN) return original.call(player);
-        return RotationUtil.rotPlayerToWorld(original.call(player), player.getXRot(), direction).x;
+        Vec3 direction = GravityChangerAPI.getGravityDirectionVec(player);
+        if (direction.equals(new Vec3(0, -1, 0))) return original.call(player);
+        return RotationUtil.rotPlayerToWorldVec(original.call(player), player.getXRot(), direction).x;
     }
     
     @WrapOperation(
@@ -36,8 +37,8 @@ public class ItemMixin {
         )
     )
     private static float wrapOperation_raycast_getPitch(Player player, Operation<Float> original) {
-        Direction direction = GravityChangerAPI.getGravityDirection(player);
-        if (direction == Direction.DOWN) return original.call(player);
-        return RotationUtil.rotPlayerToWorld(player.getYRot(), original.call(player), direction).y;
+        Vec3 direction = GravityChangerAPI.getGravityDirectionVec(player);
+        if (direction.equals(new Vec3(0, -1, 0))) return original.call(player);
+        return RotationUtil.rotPlayerToWorldVec(player.getYRot(), original.call(player), direction).y;
     }
 }

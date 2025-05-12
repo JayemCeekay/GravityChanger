@@ -9,6 +9,7 @@ import net.minecraft.world.item.context.UseOnContext;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -23,11 +24,11 @@ public abstract class ItemUsageContextMixin {
         )
     )
     private float wrapOperation_getPlayerYaw_getYaw_0(Player entity, Operation<Float> original) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return original.call(entity);
         }
         
-        return RotationUtil.rotPlayerToWorld(original.call(entity), entity.getXRot(), gravityDirection).x;
+        return RotationUtil.rotPlayerToWorldVec(original.call(entity), entity.getXRot(), gravityDirection).x;
     }
 }

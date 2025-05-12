@@ -1,6 +1,7 @@
 package gravity_changer;
 
 import gravity_changer.util.QuaternionUtil;
+import gravity_changer.util.Rotor;
 import gravity_changer.util.RotationUtil;
 import net.minecraft.core.Direction;
 import net.minecraft.util.Mth;
@@ -14,8 +15,8 @@ import org.joml.Vector3f;
 
 public class RotationAnimation {
     private boolean inAnimation = false;
-    private Quaternionf startGravityRotation;
-    private Quaternionf endGravityRotation;
+    private Rotor startGravityRotation;
+    private Rotor endGravityRotation;
     private Vec3 relativeRotationCenter = Vec3.ZERO;
 
     private long startTimeMs;
@@ -63,19 +64,20 @@ public class RotationAnimation {
 
         Vec3 newLookingDirection = getNewLookingDirectionVec(newGravity, prevGravity, entity, rotateView);
 
-        Quaternionf oldViewRotation = QuaternionUtil.getViewRotation(entity.getXRot(), entity.getYRot());
+        // Get view rotation as a rotor
+        Rotor oldViewRotor = QuaternionUtil.getViewRotor(entity.getXRot(), entity.getYRot());
 
         update(timeMs);
 
         // Get the current gravity rotation using the arbitrary gravity direction
-        Quaternionf currentAnimatedGravityRotation = getCurrentGravityRotationVec(prevGravity, timeMs);
+        Rotor currentAnimatedGravityRotor = getCurrentGravityRotorVec(prevGravity, timeMs);
 
         // camera rotation = view rotation(pitch and yaw) * gravity rotation(animated)
-        Quaternionf currentAnimatedCameraRotation = new Quaternionf().set(oldViewRotation).mul(currentAnimatedGravityRotation);
+        Rotor currentAnimatedCameraRotor = oldViewRotor.then(currentAnimatedGravityRotor);
 
-        // Create a quaternion that rotates from DOWN to the new gravity direction
+        // Create a rotor that rotates from DOWN to the new gravity direction
         Vec3 downVector = new Vec3(0, -1, 0); // Standard DOWN direction
-        Quaternionf newEndGravityRotation = RotationUtil.getRotationBetweenVec(downVector, newGravity);
+        Rotor newEndGravityRotor = RotationUtil.getRotorBetweenVec(downVector, newGravity);
 
         // Use the Vec3-based method for world to player conversion
         Vec2 newYawAndPitch = RotationUtil.vecToRot(
@@ -96,15 +98,17 @@ public class RotationAnimation {
             livingEntity.yHeadRotO += deltaYaw;
         }
 
-        Quaternionf newViewRotation = QuaternionUtil.getViewRotation(entity.getXRot(), entity.getYRot());
+        // Get new view rotation as a rotor
+        Rotor newViewRotor = QuaternionUtil.getViewRotor(entity.getXRot(), entity.getYRot());
 
         // gravity rotation = (view rotation^-1) * camera rotation
-        Quaternionf animationStartGravityRotation = new Quaternionf().set(newViewRotation).conjugate().mul(currentAnimatedCameraRotation);
+        // For rotors: inverse() is equivalent to conjugate for quaternions
+        Rotor animationStartGravityRotor = newViewRotor.inverse().then(currentAnimatedCameraRotor);
 
         this.relativeRotationCenter = relativeRotationCenter;
         inAnimation = true;
-        startGravityRotation = animationStartGravityRotation;
-        endGravityRotation = newEndGravityRotation;
+        startGravityRotation = animationStartGravityRotor;
+        endGravityRotation = newEndGravityRotor;
         startTimeMs = timeMs;
         endTimeMs = timeMs + durationTimeMs;
 
@@ -140,12 +144,11 @@ public class RotationAnimation {
             return oldLookingDirection.scale(-1);
         }
 
-        // Use the enhanced rotation method for arbitrary vectors
-        Quaternionf deltaRotation = RotationUtil.getRotationBetweenVec(prevGravity, newGravity);
+        // Use the rotor-based rotation method for arbitrary vectors
+        Rotor deltaRotor = RotationUtil.getRotorBetweenVec(prevGravity, newGravity);
 
-        Vector3f lookingDirection = new Vector3f((float) oldLookingDirection.x, (float) oldLookingDirection.y, (float) oldLookingDirection.z);
-        lookingDirection.rotate(deltaRotation);
-        Vec3 newLookingDirection = new Vec3(lookingDirection);
+        // Rotate the looking direction using the rotor
+        Vec3 newLookingDirection = deltaRotor.rotate(oldLookingDirection);
         return newLookingDirection;
     }
 
@@ -153,19 +156,30 @@ public class RotationAnimation {
      * It returns the rotation that applies to world for rendering.
      * To get the rotation that applies entity, conjugate it.
      * Supports arbitrary gravity directions
+     * For backward compatibility
      */
     public Quaternionf getCurrentGravityRotationVec(Vec3 currentGravity, long timeMs) {
+        // Convert the rotor to quaternion for backward compatibility
+        return getCurrentGravityRotorVec(currentGravity, timeMs).toQuaternion();
+    }
+
+    /**
+     * It returns the rotor that applies to world for rendering.
+     * To get the rotor that applies to entity, use inverse().
+     * Supports arbitrary gravity directions
+     */
+    public Rotor getCurrentGravityRotorVec(Vec3 currentGravity, long timeMs) {
         update(timeMs);
 
         if (!inAnimation) {
-            // Create a quaternion that rotates from DOWN to the current gravity direction
+            // Create a rotor that rotates from DOWN to the current gravity direction
             Vec3 downVector = new Vec3(0, -1, 0); // Standard DOWN direction
-            return RotationUtil.getRotationBetweenVec(downVector, currentGravity);
+            return RotationUtil.getRotorBetweenVec(downVector, currentGravity);
         }
 
         double delta = (double) (timeMs - startTimeMs) / (endTimeMs - startTimeMs);
 
-        return RotationUtil.interpolate(
+        return RotationUtil.interpolateRotors(
             startGravityRotation, endGravityRotation,
             mapProgress((float) delta)
         );
@@ -184,22 +198,39 @@ public class RotationAnimation {
      * Note when rotateView is false, it will cause non-smooth eye offset change
      * 
      * Supports arbitrary gravity directions
+     * For backward compatibility
      */
     public Vec3 getEyeOffsetVec(
         Quaternionf gravityRot, Vec3 localEyeOffset, Vec3 newGravity
     ) {
-        Quaternionf gravityRotForEntity = new Quaternionf(gravityRot).conjugate();
+        // Convert quaternion to rotor and call the rotor version
+        Rotor gravityRotor = Rotor.fromQuaternion(gravityRot);
+        return getEyeOffsetVecRotor(gravityRotor, localEyeOffset, newGravity);
+    }
+
+    /**
+     * When doing gravity flipping, the rotation center is the player bounding box center.
+     * But the player feet pos changes abruptly. So we need special calculation to eye offset.
+     *
+     * Note when rotateView is false, it will cause non-smooth eye offset change
+     * 
+     * Supports arbitrary gravity directions
+     * Uses rotors for rotation
+     */
+    public Vec3 getEyeOffsetVecRotor(
+        Rotor gravityRotor, Vec3 localEyeOffset, Vec3 newGravity
+    ) {
+        Rotor gravityRotorForEntity = gravityRotor.inverse();
 
         if (!inAnimation || relativeRotationCenter.equals(Vec3.ZERO)) {
-            return QuaternionUtil.rotate(localEyeOffset, gravityRotForEntity);
+            return gravityRotorForEntity.rotate(localEyeOffset);
         }
 
         // Use the Vec3-based method for player to world conversion
         Vec3 rotationCenterOffset = RotationUtil.vecPlayerToWorldVec(relativeRotationCenter, newGravity);
 
         Vec3 eyeOffsetFromRotationCenter = localEyeOffset.subtract(relativeRotationCenter);
-        Vec3 rotatedEyeOffsetFromRotationCenter =
-            QuaternionUtil.rotate(eyeOffsetFromRotationCenter, gravityRotForEntity);
+        Vec3 rotatedEyeOffsetFromRotationCenter = gravityRotorForEntity.rotate(eyeOffsetFromRotationCenter);
 
         return rotationCenterOffset.add(rotatedEyeOffsetFromRotationCenter);
     }
@@ -210,5 +241,12 @@ public class RotationAnimation {
 
     public boolean isInAnimation() {
         return inAnimation;
+    }
+
+    public String getAnimationTimeMs() {
+        if (!inAnimation) {
+            return "0";
+        }
+        return String.valueOf(endTimeMs - startTimeMs);
     }
 }

@@ -5,6 +5,10 @@ import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 public abstract class QuaternionUtil {
+    /**
+     * Get a quaternion representing the view rotation from pitch and yaw
+     * For backward compatibility
+     */
     public static Quaternionf getViewRotation(float pitch, float yaw) {
         Quaternionf r1 = new Quaternionf().fromAxisAngleDeg(new Vector3f(1, 0, 0), pitch);
         Quaternionf r2 = new Quaternionf().fromAxisAngleDeg(new Vector3f(0, 1, 0), yaw + 180);
@@ -12,6 +16,17 @@ public abstract class QuaternionUtil {
         return r1;
     }
 
+    /**
+     * Get a rotor representing the view rotation from pitch and yaw
+     */
+    public static Rotor getViewRotor(float pitch, float yaw) {
+        return Rotor.fromYawPitch(yaw, pitch);
+    }
+
+    /**
+     * Get a quaternion representing the rotation between two vectors
+     * For backward compatibility
+     */
     public static Quaternionf getRotationBetween(Vec3 from, Vec3 to) {
         // Normalize inputs
         Vec3 f = from.normalize();
@@ -42,11 +57,20 @@ public abstract class QuaternionUtil {
         );
     }
 
-
-    // using mutable objects could easily cause bugs if forget to copy
+    /**
+     * Rotate a vector by a quaternion
+     * For backward compatibility
+     */
     public static Vec3 rotate(Vec3 vec, Quaternionf quaternionf) {
         Vector3f vector3f = vec.toVector3f();
         vector3f.rotate(quaternionf);
         return new Vec3(vector3f);
+    }
+
+    /**
+     * Rotate a vector by a rotor
+     */
+    public static Vec3 rotate(Vec3 vec, Rotor rotor) {
+        return rotor.rotate(vec);
     }
 }

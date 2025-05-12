@@ -21,7 +21,6 @@ public abstract class LookAtEntityGoalMixin {
     )
     private double redirect_tick_getEyeY_0(Entity entity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
@@ -45,7 +44,6 @@ public abstract class LookAtEntityGoalMixin {
     )
     private double redirect_tick_getX_0(Entity entity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
@@ -69,7 +67,6 @@ public abstract class LookAtEntityGoalMixin {
     )
     private double redirect_tick_getZ_0(Entity entity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction

@@ -145,7 +145,6 @@ public abstract class ServerPlayNetworkHandlerMixin {
     )
     private Vec3 modify_onPlayerMove_move_1(Vec3 vec3d) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(this.player);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this.player);
 
         // Check if we're using the default gravity direction
@@ -154,13 +153,44 @@ public abstract class ServerPlayNetworkHandlerMixin {
             return vec3d;
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(this.player)) {
-            return RotationUtil.vecWorldToPlayer(vec3d, gravityDirection);
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(vec3d, gravityDirectionVec);
-        }
+
+            // For arbitrary gravity directions, we need to preserve WASD movement intuition
+
+            // 1. Extract movement components from the input vector
+            double forwardAmount = vec3d.z;  // Forward/backward (W/S)
+            double strafeAmount = vec3d.x;   // Left/right (A/D)
+            double upwardAmount = vec3d.y;   // Up/down (jump/sneak)
+
+            // 2. Get the player's view direction (looking direction)
+            Vec3 viewVec = this.player.getViewVector(1.0f);
+
+            // 3. Create a coordinate system aligned with the player's view but respecting gravity
+            // - First get a vector perpendicular to gravity (for the "forward" direction)
+            Vec3 gravityNorm = gravityDirectionVec.normalize();
+
+            // - Project the view vector onto the plane perpendicular to gravity
+            Vec3 viewHorizontal = viewVec.subtract(gravityNorm.scale(viewVec.dot(gravityNorm))).normalize();
+
+            // - If the projected vector is too small (looking straight up/down), use a fallback
+            if (viewHorizontal.lengthSqr() < 0.001) {
+                // Find a perpendicular vector to gravity - prioritize keeping it in the xz plane
+                if (Math.abs(gravityNorm.x) < 0.99 && Math.abs(gravityNorm.z) < 0.99) {
+                    viewHorizontal = new Vec3(-gravityNorm.z, 0, gravityNorm.x).normalize();
+                } else {
+                    viewHorizontal = new Vec3(-gravityNorm.y, gravityNorm.x, 0).normalize();
+                }
+            }
+
+            // - Get the "right" vector by crossing gravity with forward
+            Vec3 rightVec = gravityNorm.cross(viewHorizontal).normalize();
+
+            // 4. Combine the movement components in the new coordinate system
+            Vec3 movement = viewHorizontal.scale(forwardAmount)     // Forward/backward
+                    .add(rightVec.scale(strafeAmount))        // Left/right
+                    .add(gravityNorm.scale(upwardAmount));    // Up/down
+
+            return movement;
+
     }
 
     //@Redirect(
@@ -215,8 +245,42 @@ public abstract class ServerPlayNetworkHandlerMixin {
             return vec3d;
         }
 
-            // For arbitrary directions, use the Vec3-based method
-            return RotationUtil.vecWorldToPlayerVec(vec3d, gravityDirectionVec);
+
+            // Same implementation as modify_onPlayerMove_move_1
+            // 1. Extract movement components from the input vector
+            double forwardAmount = vec3d.z;  // Forward/backward (W/S)
+            double strafeAmount = vec3d.x;   // Left/right (A/D)
+            double upwardAmount = vec3d.y;   // Up/down (jump/sneak)
+
+            // 2. Get the player's view direction (looking direction)
+            Vec3 viewVec = this.player.getViewVector(1.0f);
+
+            // 3. Create a coordinate system aligned with the player's view but respecting gravity
+            // - First get a vector perpendicular to gravity (for the "forward" direction)
+            Vec3 gravityNorm = gravityDirectionVec.normalize();
+
+            // - Project the view vector onto the plane perpendicular to gravity
+            Vec3 viewHorizontal = viewVec.subtract(gravityNorm.scale(viewVec.dot(gravityNorm))).normalize();
+
+            // - If the projected vector is too small (looking straight up/down), use a fallback
+            if (viewHorizontal.lengthSqr() < 0.001) {
+                // Find a perpendicular vector to gravity - prioritize keeping it in the xz plane
+                if (Math.abs(gravityNorm.x) < 0.99 && Math.abs(gravityNorm.z) < 0.99) {
+                    viewHorizontal = new Vec3(-gravityNorm.z, 0, gravityNorm.x).normalize();
+                } else {
+                    viewHorizontal = new Vec3(-gravityNorm.y, gravityNorm.x, 0).normalize();
+                }
+            }
+
+            // - Get the "right" vector by crossing gravity with forward
+            Vec3 rightVec = gravityNorm.cross(viewHorizontal).normalize();
+
+            // 4. Combine the movement components in the new coordinate system
+            Vec3 movement = viewHorizontal.scale(forwardAmount)     // Forward/backward
+                    .add(rightVec.scale(strafeAmount))        // Left/right
+                    .add(gravityNorm.scale(upwardAmount));    // Up/down
+
+            return movement;
 
     }
 
@@ -245,7 +309,7 @@ public abstract class ServerPlayNetworkHandlerMixin {
                     target = "Lnet/minecraft/world/phys/AABB;expandTowards(DDD)Lnet/minecraft/world/phys/AABB;"
             )
     )
-    private void modify_onVehicleMove_move_0(Args args) {
+    private void modify_noBlocksAround_expandTowards(Args args) {
         // Get both Direction and Vec3 gravity directions
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(this.player);
 
@@ -253,14 +317,50 @@ public abstract class ServerPlayNetworkHandlerMixin {
 
         // Check if we're using the default gravity direction
         boolean isDefaultGravity = gravityDirectionVec.y < -0.99 && gravityDirectionVec.x == 0 && gravityDirectionVec.z == 0;
-        if (!isDefaultGravity) {
-            // For arbitrary directions, use the Vec3-based method
-            argVec = RotationUtil.vecWorldToPlayerVec(argVec, gravityDirectionVec);
+        if (isDefaultGravity) {
+            return; // Keep original values
         }
 
-        args.set(0, argVec.x);
-        args.set(1, argVec.y);
-        args.set(2, argVec.z);
+
+            // For arbitrary gravity directions, we need to use the same view-aligned approach as our movement code
+
+            // 1. Extract movement components from the input vector
+            double forwardAmount = argVec.z;  // Forward/backward (W/S)
+            double strafeAmount = argVec.x;   // Left/right (A/D)
+            double upwardAmount = argVec.y;   // Up/down (jump/sneak)
+
+            // 2. Get the player's view direction (looking direction)
+            Vec3 viewVec = this.player.getViewVector(1.0f);
+
+            // 3. Create a coordinate system aligned with the player's view but respecting gravity
+            // - First get a vector perpendicular to gravity (for the "forward" direction)
+            Vec3 gravityNorm = gravityDirectionVec.normalize();
+
+            // - Project the view vector onto the plane perpendicular to gravity
+            Vec3 viewHorizontal = viewVec.subtract(gravityNorm.scale(viewVec.dot(gravityNorm))).normalize();
+
+            // - If the projected vector is too small (looking straight up/down), use a fallback
+            if (viewHorizontal.lengthSqr() < 0.001) {
+                // Find a perpendicular vector to gravity - prioritize keeping it in the xz plane
+                if (Math.abs(gravityNorm.x) < 0.99 && Math.abs(gravityNorm.z) < 0.99) {
+                    viewHorizontal = new Vec3(-gravityNorm.z, 0, gravityNorm.x).normalize();
+                } else {
+                    viewHorizontal = new Vec3(-gravityNorm.y, gravityNorm.x, 0).normalize();
+                }
+            }
+
+            // - Get the "right" vector by crossing gravity with forward
+            Vec3 rightVec = gravityNorm.cross(viewHorizontal).normalize();
+
+            // 4. Combine the movement components in the new coordinate system
+            Vec3 transformed = viewHorizontal.scale(forwardAmount)     // Forward/backward
+                    .add(rightVec.scale(strafeAmount))       // Left/right
+                    .add(gravityNorm.scale(upwardAmount));   // Up/down
+
+            args.set(0, transformed.x);
+            args.set(1, transformed.y);
+            args.set(2, transformed.z);
+
     }
 
 }

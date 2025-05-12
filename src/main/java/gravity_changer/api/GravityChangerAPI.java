@@ -25,15 +25,6 @@ public abstract class GravityChangerAPI {
 
 
     /**
-     * Returns the applied gravity direction for the given entity as a cardinal Direction
-     * For backward compatibility
-     */
-    public static Direction getGravityDirection(Entity entity) {
-        // Convert Vec3 gravity to Direction for backward compatibility
-        return RotationUtil.vec3ToDirection(getGravityDirectionVec(entity));
-    }
-
-    /**
      * Returns the applied gravity direction for the given entity as a Vec3 (arbitrary direction)
      */
     public static Vec3 getGravityDirectionVec(Entity entity) {
@@ -141,7 +132,14 @@ public abstract class GravityChangerAPI {
     }
 
     public static GravityComponent getGravityComponent(Entity entity) {
-        return GRAVITY_COMPONENT.get(entity);
+        // Check if the component exists before trying to access it
+        if (GRAVITY_COMPONENT.maybeGet(entity).isPresent()) {
+            return GRAVITY_COMPONENT.get(entity);
+        } else {
+            // During entity initialization, the component might not be available yet
+            // Return a default gravity component to prevent NullPointerException
+            return new GravityComponent(entity);
+        }
     }
 
     /**
@@ -198,19 +196,5 @@ public abstract class GravityChangerAPI {
 
     public static boolean canChangeGravity(Entity entity) {
         return EntityTags.canChangeGravity(entity);
-    }
-
-    /**
-     * Returns whether the entity is using Vec3-based gravity
-     */
-    public static boolean isUsingVec3Gravity(Entity entity) {
-        return getGravityComponent(entity).isUsingVec3Gravity();
-    }
-
-    /**
-     * Sets whether the entity should use Vec3-based gravity
-     */
-    public static void setUseVec3Gravity(Entity entity, boolean useVec3) {
-        getGravityComponent(entity).setUseVec3Gravity(useVec3);
     }
 }

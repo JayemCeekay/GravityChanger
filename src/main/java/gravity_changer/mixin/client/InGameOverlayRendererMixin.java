@@ -23,15 +23,15 @@ public abstract class InGameOverlayRendererMixin {
         cancellable = true
     )
     private static void inject_getInWallBlockState(Player player, CallbackInfoReturnable<BlockState> cir) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(player);
-        if (gravityDirection == Direction.DOWN) return;
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(player);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) return;
         
         cir.cancel();
         
         BlockPos.MutableBlockPos mutable = new BlockPos.MutableBlockPos();
         
         Vec3 eyePos = player.getEyePosition();
-        Vector3f multipliers = RotationUtil.vecPlayerToWorld(player.getBbWidth() * 0.8F, 0.1F, player.getBbWidth() * 0.8F, gravityDirection);
+        Vector3f multipliers = RotationUtil.vecPlayerToWorldVec(player.getBbWidth() * 0.8F, 0.1F, player.getBbWidth() * 0.8F, gravityDirection).toVector3f();
         for (int i = 0; i < 8; ++i) {
             double d = eyePos.x + (double) (((float) ((i >> 0) % 2) - 0.5F) * multipliers.x());
             double e = eyePos.y + (double) (((float) ((i >> 1) % 2) - 0.5F) * multipliers.y());

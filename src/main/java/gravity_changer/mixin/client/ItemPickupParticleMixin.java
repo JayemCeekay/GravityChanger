@@ -1,4 +1,4 @@
-package gravity_changer.mixin.client;
+/**package gravity_changer.mixin.client;
 
 
 import gravity_changer.api.GravityChangerAPI;
@@ -75,3 +75,4 @@ public abstract class ItemPickupParticleMixin {
         return value + RotationUtil.vecPlayerToWorld(0.0D, 0.5D, 0.0D, gravityDirection).z;
     }
 }
+*/

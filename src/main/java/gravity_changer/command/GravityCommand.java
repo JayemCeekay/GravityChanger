@@ -165,37 +165,6 @@ public class GravityCommand {
             )
         );
 
-        builder.then(Commands.literal("set_relative_base_direction")
-            .then(Commands.argument("relativeDirection", LocalDirectionArgumentType.instance)
-                .executes(context -> {
-                    LocalDirection relativeDirection =
-                        LocalDirectionArgumentType.getDirection(context, "relativeDirection");
-
-                    Entity entity = context.getSource().getEntity();
-
-                    Validate.isTrue(entity != null);
-
-                    return executeSetRelativeBaseDir(
-                        context.getSource(), relativeDirection,
-                        List.of(entity)
-                    );
-                })
-                .then(Commands.argument("entities", EntityArgument.entities())
-                    .executes(context -> {
-                        LocalDirection relativeDirection =
-                            LocalDirectionArgumentType.getDirection(context, "relativeDirection");
-
-                        Collection<? extends Entity> entities = EntityArgument.getEntities(context, "entities");
-
-                        return executeSetRelativeBaseDir(
-                            context.getSource(), relativeDirection,
-                            entities
-                        );
-                    })
-                )
-            )
-        );
-
         builder.then(Commands.literal("set_dimension_gravity_strength")
             .then(Commands.argument("strength", DoubleArgumentType.doubleArg(-20, 20))
                 .executes(context -> {
@@ -245,28 +214,6 @@ public class GravityCommand {
         else {
             source.sendSuccess(() -> Component.translatable("commands.gravity.get.other", entity.getDisplayName(), text), true);
         }
-    }
-
-    private static int executeSetRelativeBaseDir(
-        CommandSourceStack source, LocalDirection relativeDirection,
-        Collection<? extends Entity> entities
-    ) {
-        int i = 0;
-        for (Entity entity : entities) {
-            Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-            Direction combinedRelativeDirection = switch (relativeDirection) {
-                case DOWN -> Direction.DOWN;
-                case UP -> Direction.UP;
-                case FORWARD, BACKWARD, LEFT, RIGHT ->
-                    Direction.from2DDataValue(relativeDirection.getHorizontalOffset() + Direction.fromYRot(entity.getYRot()).get2DDataValue());
-            };
-            Direction newGravityDirection = RotationUtil.dirPlayerToWorld(combinedRelativeDirection, gravityDirection);
-            GravityChangerAPI.setBaseGravityDirection(entity, newGravityDirection);
-
-            getSendFeedback(source, entity, newGravityDirection);
-            i++;
-        }
-        return i;
     }
 
 }

@@ -58,8 +58,8 @@ public abstract class FishingBobberEntityRendererMixin extends EntityRenderer<Fi
         Player playerEntity = fishingBobberEntity.getPlayerOwner();
         if (playerEntity == null) return;
         
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
-        if (gravityDirection == Direction.DOWN) return;
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(playerEntity);
+        if (gravityDirection.x ==0 && gravityDirection.z == 0 && gravityDirection.y < 0) return;
         
         ci.cancel();
         
@@ -91,7 +91,7 @@ public abstract class FishingBobberEntityRendererMixin extends EntityRenderer<Fi
         double scaledArmOffset = (double) armOffset * 0.35D;
         Vec3 lineStart;
         if ((this.entityRenderDispatcher.options == null || this.entityRenderDispatcher.options.getCameraType().isFirstPerson()) && playerEntity == Minecraft.getInstance().player) {
-            Vec3 lineOffset = RotationUtil.vecWorldToPlayer(this.entityRenderDispatcher.camera.getNearPlane().getPointOnPlane((float) armOffset * 0.525F, -0.1F), gravityDirection);
+            Vec3 lineOffset = RotationUtil.vecWorldToPlayerVec(this.entityRenderDispatcher.camera.getNearPlane().getPointOnPlane((float) armOffset * 0.525F, -0.1F), gravityDirection);
             lineOffset = lineOffset.scale(960.0D / this.entityRenderDispatcher.options.fov().get());
             lineOffset = lineOffset.yRot(sinHandSwingProgress * 0.5F);
             lineOffset = lineOffset.xRot(-sinHandSwingProgress * 0.7F);
@@ -99,14 +99,14 @@ public abstract class FishingBobberEntityRendererMixin extends EntityRenderer<Fi
                 Mth.lerp(tickDelta, playerEntity.xo, playerEntity.getX()),
                 Mth.lerp(tickDelta, playerEntity.yo, playerEntity.getY()),
                 Mth.lerp(tickDelta, playerEntity.zo, playerEntity.getZ())
-            ).add(RotationUtil.vecPlayerToWorld(lineOffset.add(0.0D, playerEntity.getEyeHeight(), 0.0D), gravityDirection));
+            ).add(RotationUtil.vecPlayerToWorldVec(lineOffset.add(0.0D, playerEntity.getEyeHeight(), 0.0D), gravityDirection));
         }
         else {
             lineStart = new Vec3(
                 Mth.lerp(tickDelta, playerEntity.xo, playerEntity.getX()),
                 playerEntity.yo + (playerEntity.getY() - playerEntity.yo) * tickDelta,
                 Mth.lerp(tickDelta, playerEntity.zo, playerEntity.getZ())
-            ).add(RotationUtil.vecPlayerToWorld(
+            ).add(RotationUtil.vecPlayerToWorldVec(
                 -cosBodyYaw * scaledArmOffset - sinBodyYaw * 0.8D,
                 playerEntity.getEyeHeight() + (playerEntity.isCrouching() ? -0.1875D : 0.0D) - 0.45D,
                 -sinBodyYaw * scaledArmOffset + cosBodyYaw * 0.8D,

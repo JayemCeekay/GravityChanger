@@ -1,4 +1,4 @@
-package gravity_changer.mixin;
+/*package gravity_changer.mixin;
 
 import gravity_changer.api.GravityChangerAPI;
 import gravity_changer.util.RotationUtil;
@@ -62,3 +62,4 @@ public abstract class CrossbowItemMixin {
         return livingEntity.getEyePosition().subtract(RotationUtil.vecPlayerToWorld(0.0D, 0.15000000596046448D, 0.0D, gravityDirection)).z;
     }
 }
+*/

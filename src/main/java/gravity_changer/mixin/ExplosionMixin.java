@@ -25,8 +25,8 @@ public abstract class ExplosionMixin {
         )
     )
     private double redirect_collectBlocksAndDamageEntities_getEyeY_0(Entity entity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return entity.getEyeY();
         }
         
@@ -42,8 +42,8 @@ public abstract class ExplosionMixin {
         )
     )
     private double redirect_collectBlocksAndDamageEntities_getX_0(Entity entity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return entity.getX();
         }
         
@@ -59,8 +59,8 @@ public abstract class ExplosionMixin {
         )
     )
     private double redirect_collectBlocksAndDamageEntities_getZ_0(Entity entity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return entity.getZ();
         }
         
@@ -76,12 +76,12 @@ public abstract class ExplosionMixin {
         )
     )
     private Vec3 wrapOperation_collectBlocksAndDamageEntities_getVelocity_0(Entity entity, Operation<Vec3> original) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return original.call(entity);
         }
         
-        return RotationUtil.vecPlayerToWorld(original.call(entity), gravityDirection);
+        return RotationUtil.vecPlayerToWorldVec(original.call(entity), gravityDirection);
     }
     
     @WrapOperation(
@@ -93,12 +93,12 @@ public abstract class ExplosionMixin {
         )
     )
     private void wrapOperation_collectBlocksAndDamageEntities_setVelocity_0(Entity entity, Vec3 vec3d, Operation<Void> original) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             original.call(entity, vec3d);
             return;
         }
         
-        original.call(entity, RotationUtil.vecWorldToPlayer(vec3d, gravityDirection));
+        original.call(entity, RotationUtil.vecWorldToPlayerVec(vec3d, gravityDirection));
     }
 }

@@ -39,8 +39,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
         )
     )
     private double redirect_onGameStateChange_getEyeY_0(Player playerEntity) {
-        // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
+        // Get Vec3 gravity directions
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(playerEntity);
 
         // Check if we're using the default gravity direction
@@ -64,7 +63,6 @@ public abstract class ClientPlayNetworkHandlerMixin {
     )
     private double redirect_onGameStateChange_getX_0(Player playerEntity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(playerEntity);
 
         // Check if we're using the default gravity direction
@@ -88,7 +86,6 @@ public abstract class ClientPlayNetworkHandlerMixin {
     )
     private double redirect_onGameStateChange_getZ_0(Player playerEntity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(playerEntity);
 
         // Check if we're using the default gravity direction
@@ -112,7 +109,6 @@ public abstract class ClientPlayNetworkHandlerMixin {
     )
     private Vec3 wrapOperation_onExplosion_add_0(Vec3 vec3d, double x, double y, double z, Operation<Vec3> original) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(minecraft.player);
         Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(minecraft.player);
 
         // Check if we're using the default gravity direction
@@ -121,14 +117,7 @@ public abstract class ClientPlayNetworkHandlerMixin {
             return original.call(vec3d, x, y, z);
         }
 
-        Vec3 player;
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(minecraft.player)) {
-            player = RotationUtil.vecWorldToPlayer(x, y, z, gravityDirection);
-        } else {
-            // For arbitrary directions, use the Vec3-based method
-            player = RotationUtil.vecWorldToPlayerVec(new Vec3(x, y, z), gravityDirectionVec);
-        }
+        Vec3 player = RotationUtil.vecWorldToPlayerVec(new Vec3(x, y, z), gravityDirectionVec);
 
         return original.call(vec3d, player.x, player.y, player.z);
     }

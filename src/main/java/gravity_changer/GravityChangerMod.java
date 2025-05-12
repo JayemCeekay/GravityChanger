@@ -1,10 +1,7 @@
 package gravity_changer;
 
 import gravity_changer.api.RotationParameters;
-import gravity_changer.command.DirectionArgumentType;
-import gravity_changer.command.GravityCommand;
-import gravity_changer.command.LocalDirectionArgumentType;
-import gravity_changer.command.Vec3ArgumentType;
+import gravity_changer.command.*;
 import gravity_changer.config.GravityChangerConfig;
 import gravity_changer.item.GravityAnchorItem;
 import gravity_changer.mob_effect.GravityPotion;
@@ -65,7 +62,11 @@ public class GravityChangerMod implements ModInitializer {
         config = configHolder.getConfig();
 
         CommandRegistrationCallback.EVENT.register(
-            (dispatcher, registryAccess, environment) -> GravityCommand.register(dispatcher)
+            (dispatcher, registryAccess, environment) ->
+            {GravityCommand.register(dispatcher);
+                GravityDiagnosticCommand.register(dispatcher);
+
+            }
         );
 
         GravityChangerGroup = FabricItemGroup.builder()

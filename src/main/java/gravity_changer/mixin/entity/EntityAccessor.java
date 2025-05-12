@@ -1,4 +1,4 @@
-package gravity_changer.mixin;
+package gravity_changer.mixin.entity;
 
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.phys.AABB;

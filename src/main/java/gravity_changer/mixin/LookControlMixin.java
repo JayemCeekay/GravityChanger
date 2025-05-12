@@ -90,7 +90,6 @@ public abstract class LookControlMixin {
     )
     private double redirect_lookAt_getX_0_1(Entity entity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction

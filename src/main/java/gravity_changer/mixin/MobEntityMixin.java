@@ -25,7 +25,6 @@ public abstract class MobEntityMixin {
     )
     private float wrapOperation_tryAttack_getYaw_0(Mob attacker, Operation<Float> original, Entity target) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(target);
 
         // Check if we're using the default gravity direction
@@ -34,13 +33,10 @@ public abstract class MobEntityMixin {
             return original.call(attacker);
         }
 
-        // For cardinal directions, use the existing code path for backward compatibility
-        if (!GravityChangerAPI.isUsingVec3Gravity(target)) {
-            return RotationUtil.rotWorldToPlayer(original.call(attacker), attacker.getXRot(), gravityDirection).x;
-        } else {
+
             // For arbitrary directions, use the Vec3-based method
             return RotationUtil.rotWorldToPlayerVec(original.call(attacker), attacker.getXRot(), gravityDirectionVec).x;
-        }
+
     }
 
     @Redirect(
@@ -53,7 +49,6 @@ public abstract class MobEntityMixin {
     )
     private double redirect_lookAtEntity_getEyeY_0(LivingEntity livingEntity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(livingEntity);
 
         // Check if we're using the default gravity direction
@@ -77,7 +72,6 @@ public abstract class MobEntityMixin {
     )
     private double redirect_lookAtEntity_getX_0(Entity entity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
@@ -101,7 +95,6 @@ public abstract class MobEntityMixin {
     )
     private double redirect_lookAtEntity_getZ_0(Entity entity) {
         // Get both Direction and Vec3 gravity directions
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
         net.minecraft.world.phys.Vec3 gravityDirectionVec = GravityChangerAPI.getGravityDirectionVec(entity);
 
         // Check if we're using the default gravity direction
