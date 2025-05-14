@@ -6,11 +6,8 @@ import gravity_changer.EntityTags;
 import gravity_changer.RotationAnimation;
 import gravity_changer.api.GravityChangerAPI;
 import gravity_changer.collision.OrientedBoundingBox;
-import gravity_changer.collision.OrientedBoundingBoxTransformer;
 import gravity_changer.util.RotationUtil;
-import gravity_changer.util.Rotor;
 import net.minecraft.client.Camera;
-import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.culling.Frustum;
@@ -19,7 +16,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ExperienceOrb;
-import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
@@ -28,15 +24,12 @@ import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.VoxelShape;
-import org.joml.Matrix3f;
-import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.*;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -51,14 +44,20 @@ public abstract class EntityRenderDispatcherMixin {
     @Shadow
     private boolean shouldRenderShadow;
 
-    @Shadow private Camera camera;
-
-    @Shadow private Level level;
+    @Shadow
+    private Camera camera;
 
     @Shadow
-    private static void shadowVertex(PoseStack.Pose entry, VertexConsumer vertices, float alpha, float x, float y, float z, float u, float v) {}
+    private Level level;
 
-    @Shadow public abstract double distanceToSqr(double x, double y, double z);
+    @Shadow
+    private static void shadowVertex(PoseStack.Pose entry, VertexConsumer vertices, float alpha, float x, float y, float z, float u, float v) {
+    }
+
+    @Shadow
+    public abstract double distanceToSqr(double x, double y, double z);
+
+
 
     /**
      * Inject into the prepare method to potentially rotate the camera orientation
@@ -100,7 +99,7 @@ public abstract class EntityRenderDispatcherMixin {
                 return;
             }
             long timeMs = entity.level().getGameTime() * 50 + (long) (tickDelta * 50);
-            matrices.mulPose(new Quaternionf(animation.getCurrentGravityRotationVec(gravityDirection, timeMs)).conjugate());
+            matrices.mulPose(new Quaternionf(animation.getCurrentGravityRotationVec(gravityDirection, timeMs)));
         }
     }
 
@@ -124,6 +123,7 @@ public abstract class EntityRenderDispatcherMixin {
         }
     }
 
+
     /**
      * Inject after translating back to setup shadow rendering with proper gravity orientation
      */
@@ -146,6 +146,7 @@ public abstract class EntityRenderDispatcherMixin {
         }
     }
 
+
     /**
      * Completely override the renderShadow method for entities with custom gravity
      */
@@ -160,9 +161,9 @@ public abstract class EntityRenderDispatcherMixin {
 
         ci.cancel();
 
-        double x = Mth.lerp((double)tickDelta, entity.xOld, entity.getX());
-        double y = Mth.lerp((double)tickDelta, entity.yOld, entity.getY());
-        double z = Mth.lerp((double)tickDelta, entity.zOld, entity.getZ());
+        double x = Mth.lerp((double) tickDelta, entity.xOld, entity.getX());
+        double y = Mth.lerp((double) tickDelta, entity.yOld, entity.getY());
+        double z = Mth.lerp((double) tickDelta, entity.zOld, entity.getZ());
         Vec3 minShadowPos = RotationUtil.vecPlayerToWorldVec(new Vec3((double) -radius, (double) -radius, (double) -radius), gravityDirection).add(x, y, z);
         Vec3 maxShadowPos = RotationUtil.vecPlayerToWorldVec(new Vec3((double) radius, 0.0D, (double) radius), gravityDirection).add(x, y, z);
         PoseStack.Pose entry = matrices.last();
@@ -172,6 +173,7 @@ public abstract class EntityRenderDispatcherMixin {
             gravitychanger$renderShadowPartPlayer(entry, vertexConsumer, world, blockPos, x, y, z, radius, opacity, gravityDirection);
         }
     }
+
 
     /**
      * Render a shadow for a single block position, accounting for custom gravity direction

@@ -78,7 +78,7 @@ public abstract class CameraMixin {
         }
 
         // Use the Vec3-based method to get the gravity rotation
-        Quaternionf gravityRotation = animation.getCurrentGravityRotationVec(gravityDirectionVec, timeMs);
+        Quaternionf gravityRotation = animation.getCurrentGravityRotationVec(gravityDirectionVec, timeMs).conjugate();
 
         double entityX = Mth.lerp(tickDelta, focusedEntity.xo, focusedEntity.getX());
         double entityY = Mth.lerp(tickDelta, focusedEntity.yo, focusedEntity.getY());
@@ -131,7 +131,7 @@ public abstract class CameraMixin {
 
             // Use the Vec3-based method to get the gravity rotation
             Quaternionf rotation = new Quaternionf(animation.getCurrentGravityRotationVec(gravityDirectionVec, timeMs));
-            rotation.conjugate();
+            //rotation.conjugate();
             rotation.mul(this.rotation);
             this.rotation.set(rotation.x(), rotation.y(), rotation.z(), rotation.w());
         }

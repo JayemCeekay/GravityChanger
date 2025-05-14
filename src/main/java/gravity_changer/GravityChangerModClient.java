@@ -37,8 +37,8 @@ public class GravityChangerModClient implements ClientModInitializer {
         BlockRenderLayerMap.INSTANCE.putBlocks(RenderType.cutout(), GravityPlatingBlock.PLATING_BLOCK);
 
         // Register the orientation widget
-        OrientationWidget.register();
-        WorldOrientationWidget.register();
+        //OrientationWidget.register();
+        //WorldOrientationWidget.register();
 
         // Register client-side commands
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) -> {

@@ -1,10 +1,14 @@
 package gravity_changer.client;
 
+import gravity_changer.api.GravityChangerAPI;
+import gravity_changer.util.RotationUtil;
+import gravity_changer.util.Rotor;
 import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
 import java.util.HashMap;
@@ -51,6 +55,7 @@ public class WorldOrientationWidget {
         HudRenderCallback.EVENT.register(WorldOrientationWidget::render);
     }
 
+    // Update the render method where we remove the dependency on the player's orientation
     private static void render(GuiGraphics graphics, float tickDelta) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.player == null || minecraft.options.hideGui) {
@@ -58,10 +63,14 @@ public class WorldOrientationWidget {
         }
 
         Player player = minecraft.player;
+
+        // Retrieve the player's gravity direction vector
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(player);
+
         int screenWidth = minecraft.getWindow().getGuiScaledWidth();
         int screenHeight = minecraft.getWindow().getGuiScaledHeight();
 
-        // Position in bottom left corner to distinguish from player orientation widget
+        // Position the widget in the bottom left corner
         int x = WIDGET_MARGIN;
         int y = screenHeight - WIDGET_SIZE - WIDGET_MARGIN;
 
@@ -75,29 +84,106 @@ public class WorldOrientationWidget {
         graphics.vLine(x + WIDGET_SIZE, y, y + WIDGET_SIZE, 0xFFFFFFFF);
 
         // Add title
-        graphics.drawString(minecraft.font, "World Axes", x + 5, y + 5, 0xFFFFFFFF);
+        graphics.drawString(minecraft.font, "World Rotation", x + 5, y + 5, 0xFFFFFFFF);
 
         // Center of widget
         int centerX = x + WIDGET_SIZE / 2;
         int centerY = y + WIDGET_SIZE / 2;
 
-        // Get camera orientation - we want smooth transitions
-        float yaw = minecraft.gameRenderer.getMainCamera().getYRot();
-        float pitch = minecraft.gameRenderer.getMainCamera().getXRot();
+        // Apply the rotation to account for the player's gravity
+        drawWorldAxes(graphics, centerX, centerY, 25, gravityDirection);
 
-        // Smooth interpolation for camera movement
-        float interpolatedYaw = lerpAngle(prevYaw, yaw, 0.3f);
-        float interpolatedPitch = lerpAngle(prevPitch, pitch, 0.3f);
-
-        // Draw 3D world axes with 2D techniques
-        drawWorldAxes(graphics, centerX, centerY, 25, interpolatedYaw, interpolatedPitch);
-
-        // Add coordinate hints
+        // Add a hint for X/Z orientation
         graphics.drawString(minecraft.font, "X/Z", centerX - 12, y + WIDGET_SIZE - 15, 0xFFAAAAAA);
+    }
 
-        // Store for next frame
-        prevYaw = interpolatedYaw;
-        prevPitch = interpolatedPitch;
+    private static void drawWorldAxes(GuiGraphics graphics, int centerX, int centerY, int radius, Vec3 gravityDirection) {
+        // Draw the widget background with grid
+        drawGradientCircle(graphics, centerX, centerY, radius, 0xFF333333, 0xFF111111);
+        drawCircle(graphics, centerX, centerY, radius / 2, 0x55777777);
+        drawCircle(graphics, centerX, centerY, radius, 0x55777777);
+
+        // Determine the rotation to negate the effect of the custom gravity direction
+        Rotor worldToPlayerRotor = RotationUtil.getRotorBetweenVec(gravityDirection, new Vec3(0, -1, 0));
+
+        // Iterate through the six world directions
+        for (Direction direction : Direction.values()) {
+            Vector3f dirVec = DIRECTION_VECTORS.get(direction);
+            int color = DIRECTION_COLORS.get(direction);
+
+            // Convert the Vector3f to Vec3 for rotation
+            Vec3 worldAxisVec = new Vec3(dirVec.x, dirVec.y, dirVec.z);
+
+            // Apply the "world-to-player" rotation
+            Vec3 rotatedAxisVec = worldToPlayerRotor.rotate(worldAxisVec);
+
+            // Project the axis to 2D space for rendering
+            Vector2f screenPos = projectTo2D(new Vector3f(
+                    (float) rotatedAxisVec.x,
+                    (float) rotatedAxisVec.y,
+                    (float) rotatedAxisVec.z), 0, 0, radius);
+
+            // Use the rotated vector for drawing
+            int markerX = centerX + (int) screenPos.x;
+            int markerY = centerY + (int) screenPos.y;
+
+            // Make major axes more prominent
+            boolean isMajorAxis = (direction == Direction.UP || direction == Direction.NORTH || direction == Direction.EAST);
+            int markerSize = isMajorAxis ? 6 : 4;
+
+            // Draw a line from the center to each axis marker
+            drawGradientLine(graphics, centerX, centerY, markerX, markerY, 0x33FFFFFF, color);
+
+            // Draw direction marker
+            drawFilledCircle(graphics, markerX, markerY, markerSize, color);
+
+            // Add labels for major axes
+            String label = getCoordinateLabel(direction);
+            float distance = (float) Math.sqrt(screenPos.x * screenPos.x + screenPos.y * screenPos.y);
+            if (distance > radius * 0.4f) {
+                graphics.drawString(Minecraft.getInstance().font, label,
+                        markerX - Minecraft.getInstance().font.width(label) / 2,
+                        markerY - 10,
+                        color);
+            }
+        }
+    }
+
+    // Modify the drawWorldAxes method to ignore camera rotation
+    private static void drawWorldAxes(GuiGraphics graphics, int centerX, int centerY, int radius) {
+        // Draw the widget background with grid
+        drawGradientCircle(graphics, centerX, centerY, radius, 0xFF333333, 0xFF111111);
+        drawCircle(graphics, centerX, centerY, radius / 2, 0x55777777);
+        drawCircle(graphics, centerX, centerY, radius, 0x55777777);
+
+        // Directly project the world directions to the screen
+        for (Direction direction : Direction.values()) {
+            Vector3f dirVec = DIRECTION_VECTORS.get(direction);
+            int color = DIRECTION_COLORS.get(direction);
+
+            // Project the 3D direction onto 2D screen space assuming no rotation (world-aligned view)
+            int markerX = centerX + (int) (dirVec.x * radius);
+            int markerY = centerY - (int) (dirVec.z * radius); // Negate z-axis for 2D screen positioning
+
+            // Make major axes more prominent
+            boolean isMajorAxis = (direction == Direction.UP || direction == Direction.NORTH || direction == Direction.EAST);
+            int markerSize = isMajorAxis ? 6 : 4;
+
+            // Draw line from center to marker with a gradient
+            drawGradientLine(graphics, centerX, centerY, markerX, markerY, 0x33FFFFFF, color);
+
+            // Draw direction marker
+            drawFilledCircle(graphics, markerX, markerY, markerSize, color);
+
+            // Draw coordinate label
+            String label = getCoordinateLabel(direction);
+            if (!label.isEmpty()) {
+                graphics.drawString(Minecraft.getInstance().font, label,
+                        markerX - Minecraft.getInstance().font.width(label) / 2,
+                        markerY - 10,
+                        color);
+            }
+        }
     }
 
     /**

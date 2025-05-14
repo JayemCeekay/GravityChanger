@@ -49,7 +49,7 @@ public abstract class GameRendererMixin {
             Quaternionf currentGravityRotation = animation.getCurrentGravityRotationVec(
                 GravityChangerAPI.getGravityDirectionVec(focusedEntity), 
                 timeMs
-            );
+            ).conjugate();
 
             if (animation.isInAnimation()) {
                 // make sure that frustum culling updates when running rotation animation

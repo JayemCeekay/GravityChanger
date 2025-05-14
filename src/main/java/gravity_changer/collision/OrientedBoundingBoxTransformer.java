@@ -2,11 +2,13 @@ package gravity_changer.collision;
 
 import com.google.common.collect.Maps;
 import gravity_changer.util.RotationUtil;
+import gravity_changer.util.Rotor;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Utility class for transforming between AABBs and OrientedBoundingBoxes.
@@ -15,7 +17,7 @@ import java.util.Map;
 public class OrientedBoundingBoxTransformer {
     
     // Cache for transformed boxes to avoid recalculating them every frame
-    private static final Map<Pair<AABB, Vec3>, OrientedBoundingBox> OBB_CACHE = Maps.newHashMap();
+    private static final ConcurrentMap<Pair<AABB, Vec3>, OrientedBoundingBox> OBB_CACHE = Maps.newConcurrentMap();
     
     // Maximum cache size to prevent memory leaks
     private static final int MAX_CACHE_SIZE = 1000;
@@ -39,7 +41,7 @@ public class OrientedBoundingBoxTransformer {
                 (box.minY + box.maxY) / 2,
                 (box.minZ + box.maxZ) / 2
             );
-            return new OrientedBoundingBox(box, gravity_changer.util.Rotor.identity(), center);
+            return new OrientedBoundingBox(box, Rotor.identity(), center);
         }
         
         // Check cache first
@@ -87,7 +89,7 @@ public class OrientedBoundingBoxTransformer {
         // Check if the OBB intersects with the second AABB
         return obb.intersects(box2);
     }
-    
+
     /**
      * Transforms an OrientedBoundingBox to an AABB that contains it.
      * This is useful for broad-phase collision detection.

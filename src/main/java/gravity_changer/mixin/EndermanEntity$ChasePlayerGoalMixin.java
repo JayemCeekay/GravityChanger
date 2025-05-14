@@ -1,9 +1,10 @@
-/*package gravity_changer.mixin;
+package gravity_changer.mixin;
 
 
 import gravity_changer.api.GravityChangerAPI;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -21,8 +22,8 @@ public abstract class EndermanEntity$ChasePlayerGoalMixin {
         )
     )
     private double redirect_tick_getEyeY_0(LivingEntity livingEntity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(livingEntity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return livingEntity.getEyeY();
         }
         
@@ -30,7 +31,7 @@ public abstract class EndermanEntity$ChasePlayerGoalMixin {
     }
     
     @Redirect(
-        method = "Lnet/minecraft/entity/mob/EndermanEntity$ChasePlayerGoal;tick()V",
+        method = "tick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/LivingEntity;getX()D",
@@ -38,8 +39,8 @@ public abstract class EndermanEntity$ChasePlayerGoalMixin {
         )
     )
     private double redirect_tick_getX_0(LivingEntity livingEntity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(livingEntity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return livingEntity.getX();
         }
         
@@ -47,7 +48,7 @@ public abstract class EndermanEntity$ChasePlayerGoalMixin {
     }
     
     @Redirect(
-        method = "Lnet/minecraft/entity/mob/EndermanEntity$ChasePlayerGoal;tick()V",
+        method = "tick",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/world/entity/LivingEntity;getZ()D",
@@ -55,12 +56,11 @@ public abstract class EndermanEntity$ChasePlayerGoalMixin {
         )
     )
     private double redirect_tick_getZ_0(LivingEntity livingEntity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(livingEntity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(livingEntity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return livingEntity.getZ();
         }
         
         return livingEntity.getEyePosition().z;
     }
 }
-*/

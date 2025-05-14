@@ -20,9 +20,8 @@ public class OrientedBoundingBox extends AABB {
     private final AABB boundingAABB;
 
     public OrientedBoundingBox(AABB sourceBox, Rotor rotation, Vec3 center) {
-        // Must call super first in Java 17+
-        super(sourceBox.minX, sourceBox.minY, sourceBox.minZ,
-                sourceBox.maxX, sourceBox.maxY, sourceBox.maxZ);
+        super(sourceBox.minX, sourceBox.minY, sourceBox.minZ, sourceBox.maxX, sourceBox.maxY, sourceBox.maxZ);
+        // Must call super first in Java 17
 
         // Validate parameters after super
         if (sourceBox == null || rotation == null || center == null) {
@@ -53,11 +52,11 @@ public class OrientedBoundingBox extends AABB {
         Vec3 defaultGravity = new Vec3(0, -1, 0);
 
         // Create a rotor that rotates from default gravity to the specified gravity
-        Rotor rotation = Rotor.from(defaultGravity, gravityDir);
+        Rotor rotation = Rotor.from(gravityDir, defaultGravity);
 
         // Transform the box to the local coordinate system
         // We use the inverse rotation to transform from world to local space
-        //AABB localBox = RotationUtil.boxWorldToPlayerVec(box, gravityDir);
+        AABB localBox = RotationUtil.boxPlayerToWorldVec(box, gravityDir);
 
         // Calculate the center of the box in world coordinates
         Vec3 center = new Vec3(
@@ -66,7 +65,7 @@ public class OrientedBoundingBox extends AABB {
             (box.minZ + box.maxZ) / 2
         );
 
-        return new OrientedBoundingBox(box, rotation, center);
+        return new OrientedBoundingBox(localBox, rotation, center);
     }
 
     /**

@@ -6,7 +6,7 @@ import dev.onyxstudios.cca.api.v3.component.sync.AutoSyncedComponent;
 import dev.onyxstudios.cca.api.v3.component.tick.CommonTickingComponent;
 import gravity_changer.api.GravityChangerAPI;
 import gravity_changer.api.RotationParameters;
-import gravity_changer.mixin.entity.EntityAccessor;
+import gravity_changer.mixin.world.entity.Entity.EntityAccessor;
 import gravity_changer.util.GCUtil;
 import gravity_changer.util.Rotor;
 import gravity_changer.util.RotationUtil;
@@ -82,9 +82,6 @@ public class GravityComponent implements Component, AutoSyncedComponent, CommonT
 
     // the base gravity direction
     Vec3 baseGravityDirectionVec = new Vec3(0, -1, 0); // DOWN direction as a normalized vector
-
-    // Flag to specify if we're using Vec3 gravity or Direction gravity
-    boolean useVec3Gravity = false;
 
     // the base gravity strength
     double baseGravityStrength = 1.0;

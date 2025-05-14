@@ -1,4 +1,4 @@
-/*package gravity_changer.mixin;
+package gravity_changer.mixin;
 
 
 import gravity_changer.api.GravityChangerAPI;
@@ -23,7 +23,7 @@ public abstract class EndermanEntityMixin {
     )
     private double redirect_isPlayerStaring_getEyeY_0(Player playerEntity) {
         Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(playerEntity);
-        if (gravityDirection == Direction.DOWN) {
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return playerEntity.getEyeY();
         }
         
@@ -39,8 +39,8 @@ public abstract class EndermanEntityMixin {
         )
     )
     private double redirect_isPlayerStaring_getX_0(Player playerEntity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(playerEntity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return playerEntity.getX();
         }
         
@@ -56,8 +56,8 @@ public abstract class EndermanEntityMixin {
         )
     )
     private double redirect_isPlayerStaring_getZ_0(Player playerEntity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(playerEntity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(playerEntity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return playerEntity.getZ();
         }
         
@@ -73,8 +73,8 @@ public abstract class EndermanEntityMixin {
         )
     )
     private double redirect_teleportTo_getEyeY_0(Entity entity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return entity.getEyeY();
         }
         
@@ -90,8 +90,8 @@ public abstract class EndermanEntityMixin {
         )
     )
     private double redirect_teleportTo_getX_0(Entity entity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return entity.getX();
         }
         
@@ -107,12 +107,11 @@ public abstract class EndermanEntityMixin {
         )
     )
     private double redirect_teleportTo_getZ_0(Entity entity) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(entity);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(entity);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return entity.getZ();
         }
         
         return entity.getEyePosition().z;
     }
 }
-*/

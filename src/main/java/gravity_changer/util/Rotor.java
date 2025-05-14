@@ -28,19 +28,34 @@ public class Rotor {
         Vec3 t = to.normalize();
         double cosTheta = f.dot(t);
 
-        if (cosTheta >= 1.0) return new Rotor(1f, new Vec3(0, 0, 0));
-        if (cosTheta <= -1.0) {
+        // Handle special cases with more precision
+        if (cosTheta > 0.9999) return new Rotor(1f, new Vec3(0, 0, 0)); // Nearly identical vectors
+        if (cosTheta < -0.9999) {
             // 180° rotation around any orthogonal axis
             Vec3 ortho = f.cross(new Vec3(1, 0, 0));
             if (ortho.lengthSqr() < 1e-6) ortho = f.cross(new Vec3(0, 1, 0));
+            if (ortho.lengthSqr() < 1e-6) ortho = f.cross(new Vec3(0, 0, 1)); // Extra fallback
             ortho = ortho.normalize();
             return new Rotor(0f, ortho);
         }
 
-        Vec3 axis = f.add(t).normalize();
-        Vec3 biv = f.cross(axis);
-        float s = (float) Math.sqrt((1.0 + cosTheta) * 0.5);
-        Vec3 bv = biv.normalize().scale((float) Math.sqrt((1.0 - cosTheta) * 0.5));
+        // For diagonal directions, use a more robust approach
+        Vec3 axis = f.cross(t); // Rotation axis is perpendicular to both vectors
+
+        // If vectors are nearly parallel, use the bisector method
+        if (axis.lengthSqr() < 1e-6) {
+            axis = f.add(t).normalize();
+            Vec3 biv = f.cross(axis);
+            float s = (float) Math.sqrt((1.0 + cosTheta) * 0.5);
+            Vec3 bv = biv.normalize().scale((float) Math.sqrt((1.0 - cosTheta) * 0.5));
+            return new Rotor(s, bv);
+        }
+
+        // Otherwise use the direct axis method
+        axis = axis.normalize();
+        double angle = Math.acos(cosTheta);
+        float s = (float) Math.cos(angle * 0.5);
+        Vec3 bv = axis.scale((float) Math.sin(angle * 0.5));
         return new Rotor(s, bv);
     }
 
@@ -156,6 +171,8 @@ public class Rotor {
         // Get box center and dimensions
         Vec3 center = box.getCenter();
 
+        center = rotor.rotate(center);
+
         Vec3 dimensions = new Vec3(
                 box.getXsize(),
                 box.getYsize(),
@@ -182,7 +199,7 @@ public class Rotor {
                     Vec3 rotatedOffset = rotor.rotate(localOffset);
 
                     // Add to corners array (still centered at origin)
-                    corners[i++] = rotatedOffset;
+                    corners[i++] = center.add(rotatedOffset);
                 }
             }
         }
@@ -205,9 +222,10 @@ public class Rotor {
         }
 
         AABB newBox = new AABB(
-                minX + center.x, minY + center.y, minZ + center.z,
-                maxX + center.x, maxY + center.y, maxZ + center.z
-        );
+                minX , minY, minZ ,
+                maxX , maxY, maxZ);
+
+        assert Math.abs(box.getSize() - newBox.getSize()) < 1e-6 : "Rotation caused unexpected scaling.";
         // Create a new AABB from the rotated corners, transformed back to world space
         return newBox;
     }
@@ -219,6 +237,8 @@ public class Rotor {
 
         // Step 1: Get the center of the box
         Vec3 center = box.getCenter();
+
+        center = rotor.rotate(center);
 
         // Step 2: Get the half-size of the box
         Vec3 halfSize = new Vec3(
@@ -242,7 +262,7 @@ public class Rotor {
                     // Rotate the corner using the inverse rotor
                     Vec3 rotatedCorner = rotor.rotate(localCorner);
                     // Store the rotated corner (still in local space)
-                    corners[i++] = rotatedCorner;
+                    corners[i++] = center.add(rotatedCorner);
                 }
             }
         }
@@ -265,8 +285,8 @@ public class Rotor {
         }
 
         AABB newBox = new AABB(
-                minX + center.x, minY + center.y, minZ + center.z,
-                maxX + center.x, maxY + center.y, maxZ + center.z
+                minX, minY, minZ,
+                maxX, maxY, maxZ
         );
         // Create a new AABB from the rotated corners, transformed back to world space
         return newBox;

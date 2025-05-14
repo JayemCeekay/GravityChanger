@@ -1,4 +1,4 @@
-/*package gravity_changer.mixin;
+package gravity_changer.mixin;
 
 
 import gravity_changer.api.GravityChangerAPI;
@@ -6,6 +6,7 @@ import gravity_changer.util.RotationUtil;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.monster.Drowned;
+import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -21,12 +22,12 @@ public abstract class DrownedEntityMixin {
         )
     )
     private double redirect_attack_getX_0(LivingEntity target) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(target);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return target.getX();
         }
         
-        return target.position().add(RotationUtil.vecPlayerToWorld(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D, gravityDirection)).x;
+        return target.position().add(RotationUtil.vecPlayerToWorldVec(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D, gravityDirection)).x;
     }
     
     @Redirect(
@@ -38,12 +39,12 @@ public abstract class DrownedEntityMixin {
         )
     )
     private double redirect_attack_getBodyY_0(LivingEntity target, double heightScale) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(target);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return target.getY(heightScale);
         }
         
-        return target.position().add(RotationUtil.vecPlayerToWorld(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D, gravityDirection)).y;
+        return target.position().add(RotationUtil.vecPlayerToWorldVec(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D, gravityDirection)).y;
     }
     
     @Redirect(
@@ -55,12 +56,12 @@ public abstract class DrownedEntityMixin {
         )
     )
     private double redirect_attack_getZ_0(LivingEntity target) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(target);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return target.getZ();
         }
         
-        return target.position().add(RotationUtil.vecPlayerToWorld(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D, gravityDirection)).z;
+        return target.position().add(RotationUtil.vecPlayerToWorldVec(0.0D, target.getBbHeight() * 0.3333333333333333D, 0.0D, gravityDirection)).z;
     }
     
     @Redirect(
@@ -71,12 +72,11 @@ public abstract class DrownedEntityMixin {
         )
     )
     private double redirect_attack_sqrt_0(double value, LivingEntity target, float pullProgress) {
-        Direction gravityDirection = GravityChangerAPI.getGravityDirection(target);
-        if (gravityDirection == Direction.DOWN) {
+        Vec3 gravityDirection = GravityChangerAPI.getGravityDirectionVec(target);
+        if (gravityDirection.equals(new Vec3(0, -1, 0))) {
             return Math.sqrt(value);
         }
         
         return Math.sqrt(Math.sqrt(value));
     }
 }
-*/
